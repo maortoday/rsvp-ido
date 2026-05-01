@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>אישור הגעה – בר המצווה של עידו אמונה</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green-dark:  #3a6b47;
+      --green-mid:   #5a8f66;
+      --green-light: #c8dfc0;
+      --green-pale:  #eef6ea;
+      --gold:        #b5843a;
+      --gold-light:  #d4a85a;
+      --cream:       #fdfaf4;
+      --text-dark:   #2c2c2c;
+      --text-mid:    #4a4a4a;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: #e4ebe0;
+      background-image:
+        radial-gradient(ellipse at 0% 0%, rgba(90,143,102,.18) 0%, transparent 55%),
+        radial-gradient(ellipse at 100% 100%, rgba(58,107,71,.14) 0%, transparent 55%);
+      min-height: 100vh;
+      padding: 28px 16px 64px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+
+    /* ── Invitation image ── */
+    .invitation-card {
+      width: 100%; max-width: 480px;
+      border-radius: 18px 18px 0 0;
+      overflow: hidden;
+      box-shadow: 0 4px 0 rgba(181,132,58,.35), 0 16px 48px rgba(0,0,0,.18);
+      border: 1.5px solid rgba(181,132,58,.22);
+      border-bottom: none;
+    }
+    .invitation-card img { width: 100%; display: block; }
+
+    /* ── RSVP wrapper ── */
+    .rsvp-section {
+      width: 100%; max-width: 480px;
+      background: white;
+      border-radius: 0 0 24px 24px;
+      overflow: visible;
+      box-shadow: 0 20px 60px rgba(0,0,0,.13);
+      border: 1.5px solid rgba(181,132,58,.17);
+      border-top: none;
+    }
+
+    /* ══ HEADER BAND ══ */
+    .rsvp-band {
+      background: linear-gradient(145deg,
+        #0e2b1a 0%, #1d4f30 25%, #2d6b42 50%, #c49030 75%, #e8b84a 100%);
+      padding: 30px 28px 26px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    /* diagonal shine sweep */
+    .rsvp-band::before {
+      content: '';
+      position: absolute; inset: -100%;
+      background: linear-gradient(115deg,
+        transparent 40%, rgba(255,230,130,.12) 50%, transparent 60%);
+      animation: bandShine 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes bandShine {
+      0%   { transform: translateX(-60%) }
+      60%  { transform: translateX(60%)  }
+      100% { transform: translateX(60%)  }
+    }
+    /* gold bottom border glow */
+    .rsvp-band::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 2.5px;
+      background: linear-gradient(90deg,
+        transparent 0%, #f0d070 25%, #fff8c0 50%, #f0d070 75%, transparent 100%);
+      box-shadow: 0 0 10px rgba(240,200,80,.5);
+    }
+
+    /* floating sparkles */
+    .band-sparks {
+      position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+    }
+    .spark {
+      position: absolute;
+      color: rgba(255,230,100,.55);
+      font-size: 10px;
+      animation: sparkFloat var(--sd, 3s) ease-in-out infinite var(--delay, 0s);
+    }
+    @keyframes sparkFloat {
+      0%,100% { transform: translateY(0) scale(.8); opacity: 0; }
+      40%,60%  { opacity: 1; }
+      50%      { transform: translateY(-14px) scale(1); }
+    }
+
+    .rsvp-band-title {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 23px; font-weight: 900;
+      background: linear-gradient(180deg, #ffffff 0%, #fde99a 60%, #f0c84a 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: .04em; position: relative;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
+    }
+
+    .rsvp-band-divider {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin-top: 13px; position: relative;
+    }
+    .rsvp-band-divider span {
+      color: #fde085;
+      font-size: 13px; letter-spacing: 7px;
+      text-shadow: 0 0 12px rgba(253,224,133,.8), 0 0 4px rgba(253,224,133,.5);
+      animation: starPulse 2.5s ease-in-out infinite;
+    }
+    @keyframes starPulse {
+      0%,100% { opacity: .8; letter-spacing: 7px; }
+      50%      { opacity: 1;  letter-spacing: 9px; }
+    }
+    .rsvp-band-divider::before, .rsvp-band-divider::after {
+      content: ''; flex: 1; max-width: 70px; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(253,224,133,.7));
+      box-shadow: 0 0 4px rgba(253,224,133,.3);
+    }
+    .rsvp-band-divider::after { transform: scaleX(-1); }
+
+    /* ══ QUICK ACTIONS ══ */
+    .quick-actions {
+      display: flex; justify-content: space-around; align-items: stretch;
+      padding: 18px 12px 16px;
+      border-bottom: 1px solid #f0f5ee;
+      gap: 4px;
+    }
+    .qa-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      background: none; border: none; cursor: pointer;
+      flex: 1; padding: 10px 6px; border-radius: 14px;
+      transition: background .15s, transform .12s;
+      text-decoration: none;
+    }
+    .qa-btn:hover { background: var(--green-pale); transform: translateY(-2px); }
+    .qa-btn:active { transform: scale(.93); }
+    .qa-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    .qa-icon.call    { background: linear-gradient(135deg, #e8f8ee, #d0f0da); }
+    .qa-icon.cal     { background: linear-gradient(135deg, #fff3e0, #ffe0b0); }
+    .qa-icon.nav     { background: linear-gradient(135deg, #e3f2fd, #c8e6f8); }
+    .qa-icon.share   { background: linear-gradient(135deg, #f3e8ff, #e0c8f8); }
+    .qa-label {
+      font-size: 11px; font-weight: 600; color: var(--text-mid);
+      text-align: center; line-height: 1.3;
+    }
+
+    /* ══ SHARE SHEET ══ */
+    .share-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.45); backdrop-filter: blur(4px);
+      align-items: flex-end; justify-content: center;
+    }
+    .share-overlay.show { display: flex; animation: fadeIn .2s ease; }
+    .share-sheet {
+      background: white;
+      border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 480px;
+      padding: 20px 24px 36px;
+      animation: slideUp .28s cubic-bezier(.34,1.1,.64,1);
+    }
+    @keyframes slideUp { from { transform: translateY(100%); opacity: .5; } to { transform: translateY(0); opacity: 1; } }
+    .share-handle {
+      width: 40px; height: 4px; border-radius: 99px;
+      background: #dde; margin: 0 auto 18px;
+    }
+    .share-title {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 18px; font-weight: 700; color: var(--text-dark);
+      text-align: center; margin-bottom: 20px;
+    }
+    .share-options { display: flex; flex-direction: column; gap: 10px; }
+    .share-opt {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px; border-radius: 14px;
+      background: #f8faf6; border: 1.5px solid #eaf2e4;
+      cursor: pointer; transition: background .15s, transform .1s;
+      text-decoration: none; color: var(--text-dark);
+    }
+    .share-opt:hover { background: var(--green-pale); transform: translateX(-2px); }
+    .share-opt:active { transform: scale(.98); }
+    .share-opt-icon { font-size: 26px; width: 36px; text-align: center; flex-shrink: 0; }
+    .share-opt-text strong { font-size: 14px; font-weight: 700; display: block; }
+    .share-opt-text span   { font-size: 12px; color: #888; }
+    .share-cancel {
+      margin-top: 14px; width: 100%; height: 48px;
+      background: #f4f4f6; border: none; border-radius: 14px;
+      font-family: 'Heebo', sans-serif; font-size: 15px; font-weight: 600;
+      color: #888; cursor: pointer; transition: background .15s;
+    }
+    .share-cancel:hover { background: #eaeaec; }
+
+    /* ══ FORM ══ */
+    .rsvp-inner { padding: 24px 26px 0; }
+    .form-grid { display: flex; flex-direction: column; gap: 16px; }
+    .form-row  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 380px) { .form-row { grid-template-columns: 1fr; } }
+    .field { display: flex; flex-direction: column; }
+    .input-wrap { position: relative; }
+    .input-wrap label {
+      position: absolute; top: 50%; right: 14px;
+      transform: translateY(-50%);
+      font-size: 14px; font-weight: 500; color: #a0b89a;
+      pointer-events: none; transition: all .2s ease;
+      background: transparent; padding: 0 2px;
+    }
+    .input-wrap input:focus ~ label,
+    .input-wrap input:not(:placeholder-shown) ~ label {
+      top: 0; font-size: 10px; font-weight: 700;
+      color: var(--green-mid); background: white; letter-spacing: .05em;
+    }
+    input[type="text"], input[type="tel"] {
+      width: 100%; height: 52px;
+      border: 1.8px solid #e0eada; border-radius: 12px;
+      padding: 14px 14px 2px;
+      font-family: 'Heebo', sans-serif; font-size: 15px;
+      color: var(--text-dark); background: white;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none; direction: rtl;
+    }
+    input:focus { border-color: var(--green-mid); box-shadow: 0 0 0 3.5px rgba(90,143,102,.11); }
+    input.error { border-color: #e05050; box-shadow: 0 0 0 3px rgba(224,80,80,.09); }
+    .hint { font-size: 11px; color: #e05050; margin-top: 4px; padding-right: 4px; display: none; }
+    .hint.show { display: block; }
+
+    .guests-row {
+      background: #f7fbf5; border: 1.8px solid #e0eada; border-radius: 12px;
+      padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .guests-label { font-size: 13px; font-weight: 600; color: var(--text-mid); }
+    .count-controls { display: flex; align-items: center; gap: 12px; }
+    .count-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1.8px solid #ccdfc5; background: white;
+      color: var(--green-dark); font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; box-shadow: 0 1px 4px rgba(58,107,71,.1);
+    }
+    .count-btn:hover { background: var(--green-pale); border-color: var(--green-mid); transform: scale(1.08); }
+    .count-display { min-width: 36px; text-align: center; font-size: 22px; font-weight: 800; color: var(--green-dark); }
+
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 2px; }
+    .btn {
+      height: 54px; border: none; border-radius: 14px;
+      font-family: 'Heebo', sans-serif; font-size: 15px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: transform .15s, box-shadow .15s;
+      position: relative; overflow: hidden;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-confirm {
+      background: linear-gradient(135deg, #6aab78 0%, var(--green-dark) 100%);
+      color: white;
+      box-shadow: 0 5px 20px rgba(58,107,71,.28), inset 0 1px 0 rgba(255,255,255,.15);
+    }
+    .btn-confirm:hover:not(:disabled) { box-shadow: 0 8px 28px rgba(58,107,71,.38); transform: translateY(-2px); }
+    .btn-decline {
+      background: white; color: #b0b8c4;
+      border: 2px solid #e8eef0; box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+    .btn-decline:hover:not(:disabled) { color: #909aa4; border-color: #d0d8e0; transform: translateY(-1px); }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.35); border-top-color: white;
+      border-radius: 50%; animation: spin .7s linear infinite; display: none;
+    }
+    .spinner.dark { border-color: rgba(0,0,0,.1); border-top-color: #c0c8d0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══ MAP SECTION ══ */
+    .map-section {
+      margin: 20px 26px 0;
+    }
+    .map-toggle-btn {
+      width: 100%; height: 52px;
+      background: linear-gradient(135deg, #f2f9f0, #eaf5e5);
+      border: 1.8px solid #cce0c4;
+      border-radius: 14px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 18px;
+      cursor: pointer; transition: background .15s, box-shadow .15s, transform .1s;
+      font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 700;
+      color: var(--green-dark);
+      box-shadow: 0 2px 8px rgba(58,107,71,.08);
+    }
+    .map-toggle-btn:hover {
+      background: linear-gradient(135deg, #eaf5e5, #ddf0d5);
+      box-shadow: 0 4px 14px rgba(58,107,71,.14);
+      transform: translateY(-1px);
+    }
+    .map-toggle-btn .btn-label { flex: 1; text-align: right; }
+    .map-chevron {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(58,107,71,.1);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: transform .28s ease, background .15s;
+    }
+    .map-chevron svg { display: block; transition: transform .28s ease; }
+    .map-toggle-btn.open .map-chevron { background: rgba(58,107,71,.18); }
+    .map-toggle-btn.open .map-chevron svg { transform: rotate(180deg); }
+
+    .map-container {
+      display: none; overflow: hidden;
+      border-radius: 0 0 14px 14px;
+      border: 1.8px solid #ddebd5; border-top: none;
+    }
+    .map-container.open { display: block; animation: fadeIn .25s ease; }
+    .map-container iframe {
+      width: 100%; height: 260px;
+      border: none; display: block;
+    }
+    .map-links {
+      display: flex; gap: 8px; padding: 10px 12px;
+      background: #f8fcf6; border-top: 1px solid #eaf2e4;
+    }
+    .map-link {
+      flex: 1; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-family: 'Heebo', sans-serif; font-size: 12.5px; font-weight: 700;
+      text-decoration: none; transition: opacity .15s;
+    }
+    .map-link:hover { opacity: .85; }
+    .map-link.waze  { background: #33ccff; color: white; }
+    .map-link.gmaps { background: #4285f4; color: white; }
+
+    /* ══ CARD FOOTER ══ */
+    .card-footer {
+      margin-top: 20px; text-align: center;
+      padding: 16px 24px 22px; border-top: 1px solid #f0f5ee;
+    }
+    .card-footer-text {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 13px; color: #b0c0aa; font-style: italic; letter-spacing: .02em;
+    }
+
+    /* ══ TOAST ══ */
+    .toast-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(20,50,20,.55); backdrop-filter: blur(5px);
+      align-items: center; justify-content: center;
+    }
+    .toast-overlay.show { display: flex; animation: fadeIn .2s ease; }
+    .toast-box {
+      background: var(--cream); border-radius: 24px;
+      padding: 38px 34px; max-width: 360px; width: 90%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
+      border: 1.5px solid var(--green-light);
+    }
+    .toast-icon {
+      width: 66px; height: 66px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; margin: 0 auto 14px;
+    }
+    .toast-icon.confirm-icon { background: #e6f4e8; }
+    .toast-icon.decline-icon { background: #fdecea; }
+    .toast-title { font-family: 'Frank Ruhl Libre', serif; font-size: 21px; font-weight: 700; color: var(--green-dark); margin-bottom: 10px; }
+    .toast-msg { font-size: 14px; color: var(--text-mid); line-height: 1.7; }
+    .toast-close {
+      margin-top: 20px; padding: 10px 28px;
+      background: linear-gradient(135deg, var(--green-mid), var(--green-dark));
+      color: white; border: none; border-radius: 50px;
+      font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 600;
+      cursor: pointer; box-shadow: 0 3px 12px rgba(58,107,71,.3);
+    }
+
+    /* ══ COPY TOAST ══ */
+    .copy-toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #2c2c2c; color: white;
+      padding: 10px 22px; border-radius: 50px;
+      font-size: 13px; font-weight: 600;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      pointer-events: none; z-index: 400; white-space: nowrap;
+    }
+    .copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes popIn  { from { transform: scale(.82); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+  </style>
+</head>
+<body>
+
+  <!-- ══ INVITATION ══ -->
+  <div class="invitation-card">
+    <img src="images/invitation.jpg" alt="הזמנה לבר המצווה של עידו אמונה" />
+  </div>
+
+  <!-- ══ RSVP SECTION ══ -->
+  <div class="rsvp-section">
+
+    <!-- Header band -->
+    <div class="rsvp-band">
+      <div class="band-sparks" id="bandSparks"></div>
+      <div class="rsvp-band-title">אישור הגעה — נשמח לראותכם!</div>
+      <div class="rsvp-band-divider"><span>✦ ✦ ✦</span></div>
+    </div>
+
+    <!-- Quick actions row -->
+    <div class="quick-actions">
+
+      <a href="tel:0523010253" class="qa-btn">
+        <div class="qa-icon call">📞</div>
+        <div class="qa-label">התקשר</div>
+      </a>
+
+      <button class="qa-btn" onclick="addToCalendar()">
+        <div class="qa-icon cal">📅</div>
+        <div class="qa-label">הוסף ליומן</div>
+      </button>
+
+      <button class="qa-btn" onclick="openNavMenu()">
+        <div class="qa-icon nav">🧭</div>
+        <div class="qa-label">נווט לאירוע</div>
+      </button>
+
+      <button class="qa-btn" onclick="openShare()">
+        <div class="qa-icon share">🔗</div>
+        <div class="qa-label">שתפו</div>
+      </button>
+
+    </div>
+
+    <!-- Form -->
+    <div class="rsvp-inner">
+      <form id="rsvpForm" class="form-grid" novalidate>
+
+        <div class="form-row">
+          <div class="field">
+            <div class="input-wrap">
+              <input type="text" id="firstName" placeholder=" " autocomplete="given-name" />
+              <label for="firstName">שם פרטי</label>
+            </div>
+            <span class="hint" id="hintFirst">נא להזין שם פרטי</span>
+          </div>
+          <div class="field">
+            <div class="input-wrap">
+              <input type="text" id="lastName" placeholder=" " autocomplete="family-name" />
+              <label for="lastName">שם משפחה</label>
+            </div>
+            <span class="hint" id="hintLast">נא להזין שם משפחה</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="input-wrap">
+            <input type="tel" id="phone" placeholder=" " autocomplete="tel" maxlength="15" />
+            <label for="phone">מספר פלאפון</label>
+          </div>
+          <span class="hint" id="hintPhone">נא להזין מספר פלאפון תקין</span>
+        </div>
+
+        <div class="guests-row">
+          <div class="guests-label">מספר משתתפים</div>
+          <div class="count-controls">
+            <button type="button" class="count-btn" id="countMinus">−</button>
+            <span class="count-display" id="countDisplay">1</span>
+            <button type="button" class="count-btn" id="countPlus">+</button>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" class="btn btn-confirm" id="btnConfirm">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            <span>מגיעים בשמחה!</span>
+            <div class="spinner" id="spinConfirm"></div>
+          </button>
+          <button type="button" class="btn btn-decline" id="btnDecline">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <span>לא יכולים להגיע</span>
+            <div class="spinner dark" id="spinDecline"></div>
+          </button>
+        </div>
+
+      </form>
+
+      <!-- Map section -->
+      <div class="map-section">
+        <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMap()">
+          <span style="font-size:20px;flex-shrink:0">📍</span>
+          <span class="btn-label">מפת הגעה לאירוע</span>
+          <span class="map-chevron">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3a6b47" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </span>
+        </button>
+        <div class="map-container" id="mapContainer">
+          <iframe
+            src="https://maps.google.com/maps?q=שמחה+הולצברג+12+באר+שבע&output=embed&hl=he"
+            allowfullscreen loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade">
+          </iframe>
+          <div class="map-links">
+            <a class="map-link waze"
+               href="https://waze.com/ul?q=שמחה+הולצברג+12+באר+שבע&navigate=yes"
+               target="_blank" rel="noopener">
+              🚗 &nbsp;Waze
+            </a>
+            <a class="map-link gmaps"
+               href="https://maps.google.com/?q=שמחה+הולצברג+12+באר+שבע"
+               target="_blank" rel="noopener">
+              🗺️ &nbsp;Google Maps
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="card-footer-text">משפחת אמונה — אלי, מורן, אור ונועם</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SHARE SHEET ══ -->
+  <div class="share-overlay" id="shareOverlay" onclick="if(event.target===this)closeShare()">
+    <div class="share-sheet">
+      <div class="share-handle"></div>
+      <div class="share-title">🌿 שתפו את האירוע</div>
+      <div class="share-options">
+
+        <button class="share-opt" onclick="copyLink()">
+          <span class="share-opt-icon">🔗</span>
+          <div class="share-opt-text">
+            <strong>העתק קישור</strong>
+            <span>העתק את הקישור ללוח</span>
+          </div>
+        </button>
+
+        <a class="share-opt" id="waShareLink" href="#" target="_blank" rel="noopener" onclick="closeShare()">
+          <span class="share-opt-icon">💬</span>
+          <div class="share-opt-text">
+            <strong>שתף בוואטסאפ</strong>
+            <span>שלח הזמנה בוואטסאפ</span>
+          </div>
+        </a>
+
+        <a class="share-opt" id="fbShareLink" href="#" target="_blank" rel="noopener" onclick="closeShare()">
+          <span class="share-opt-icon">👥</span>
+          <div class="share-opt-text">
+            <strong>שתף בפייסבוק</strong>
+            <span>פרסם באתר פייסבוק</span>
+          </div>
+        </a>
+
+      </div>
+      <button class="share-cancel" onclick="closeShare()">ביטול</button>
+    </div>
+  </div>
+
+  <!-- ══ NAV MENU ══ -->
+  <div class="share-overlay" id="navOverlay" onclick="if(event.target===this)closeNav()">
+    <div class="share-sheet">
+      <div class="share-handle"></div>
+      <div class="share-title">🧭 נווט לאירוע</div>
+      <div class="share-options">
+        <a class="share-opt"
+           href="https://waze.com/ul?q=שמחה+הולצברג+12+באר+שבע&navigate=yes"
+           target="_blank" rel="noopener" onclick="closeNav()">
+          <span class="share-opt-icon">🚗</span>
+          <div class="share-opt-text">
+            <strong>Waze</strong>
+            <span>נווט עם Waze</span>
+          </div>
+        </a>
+        <a class="share-opt"
+           href="https://maps.google.com/?q=שמחה+הולצברג+12+באר+שבע&dirflg=d"
+           target="_blank" rel="noopener" onclick="closeNav()">
+          <span class="share-opt-icon">🗺️</span>
+          <div class="share-opt-text">
+            <strong>Google Maps</strong>
+            <span>נווט עם Google Maps</span>
+          </div>
+        </a>
+        <a class="share-opt"
+           href="https://maps.apple.com/?q=שמחה+הולצברג+12+באר+שבע"
+           target="_blank" rel="noopener" onclick="closeNav()">
+          <span class="share-opt-icon">🍎</span>
+          <div class="share-opt-text">
+            <strong>Apple Maps</strong>
+            <span>נווט עם Apple Maps</span>
+          </div>
+        </a>
+      </div>
+      <button class="share-cancel" onclick="closeNav()">ביטול</button>
+    </div>
+  </div>
+
+  <!-- ══ RSVP TOAST ══ -->
+  <div class="toast-overlay" id="toastOverlay" role="dialog" aria-modal="true">
+    <div class="toast-box">
+      <div class="toast-icon" id="toastIcon"></div>
+      <div class="toast-title" id="toastTitle"></div>
+      <div class="toast-msg"  id="toastMsg"></div>
+      <button class="toast-close" onclick="closeToast()">סגור</button>
+    </div>
+  </div>
+
+  <!-- ══ COPY TOAST ══ -->
+  <div class="copy-toast" id="copyToast">✅ הקישור הועתק!</div>
+
+<script>
+  /* ── Band sparkles ── */
+  (function() {
+    const c = document.getElementById('bandSparks');
+    if (!c) return;
+    ['✦','✧','⋆','·','✦','✧','⋆'].forEach((ch, i) => {
+      const s = document.createElement('span');
+      s.className = 'spark';
+      s.textContent = ch;
+      s.style.cssText = `left:${10 + i*13}%;top:${20 + (i%3)*25}%;--sd:${2.5+i*.4}s;--delay:-${i*.5}s`;
+      c.appendChild(s);
+    });
+  })();
+
+  const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:5050/api/rsvp'
+    : '/api/rsvp';
+
+  let guestCount = 1;
+
+  /* ── RSVP API ── */
+  async function apiPost(body) {
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `שגיאה ${res.status}`);
+    }
+    return res.json();
+  }
+
+  /* ── Counter ── */
+  document.getElementById('countMinus').addEventListener('click', () => {
+    if (guestCount > 1) { guestCount--; document.getElementById('countDisplay').textContent = guestCount; }
+  });
+  document.getElementById('countPlus').addEventListener('click', () => {
+    if (guestCount < 20) { guestCount++; document.getElementById('countDisplay').textContent = guestCount; }
+  });
+
+  /* ── Validation ── */
+  function validate() {
+    const fn = document.getElementById('firstName').value.trim();
+    const ln = document.getElementById('lastName').value.trim();
+    const ph = document.getElementById('phone').value.trim();
+    const phoneOk = /^[\d\-\+\s]{7,15}$/.test(ph);
+    setErr('firstName','hintFirst',!fn);
+    setErr('lastName','hintLast',!ln);
+    setErr('phone','hintPhone',!phoneOk);
+    return !!(fn && ln && phoneOk);
+  }
+  function setErr(id, hintId, isErr) {
+    document.getElementById(id).classList.toggle('error', isErr);
+    document.getElementById(hintId).classList.toggle('show', isErr);
+  }
+  ['firstName','lastName','phone'].forEach(id =>
+    document.getElementById(id).addEventListener('input', () =>
+      document.getElementById(id).classList.remove('error'))
+  );
+  document.getElementById('phone').addEventListener('input', function() {
+    let v = this.value.replace(/[^\d]/g, '');
+    if (v.length > 3 && v.length <= 7) v = v.slice(0,3)+'-'+v.slice(3);
+    else if (v.length > 7) v = v.slice(0,3)+'-'+v.slice(3,10);
+    this.value = v;
+  });
+
+  /* ── Submit ── */
+  async function submit(attending) {
+    if (!validate()) return;
+    const btnId = attending ? 'btnConfirm' : 'btnDecline';
+    const spinId = attending ? 'spinConfirm' : 'spinDecline';
+    const btn = document.getElementById(btnId);
+    const spin = document.getElementById(spinId);
+    btn.disabled = true;
+    btn.querySelector('span').style.display = 'none';
+    spin.style.display = 'block';
+    try {
+      const entry = await apiPost({
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName:  document.getElementById('lastName').value.trim(),
+        phone:     document.getElementById('phone').value.trim(),
+        guests: guestCount, attending
+      });
+      showToast(entry);
+      document.getElementById('rsvpForm').reset();
+      guestCount = 1;
+      document.getElementById('countDisplay').textContent = '1';
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.querySelector('span').style.display = '';
+      spin.style.display = 'none';
+    }
+  }
+  document.getElementById('btnConfirm').addEventListener('click', () => submit(true));
+  document.getElementById('btnDecline').addEventListener('click', () => submit(false));
+
+  /* ── RSVP Toast ── */
+  function showToast(entry) {
+    const icon  = document.getElementById('toastIcon');
+    const title = document.getElementById('toastTitle');
+    const msg   = document.getElementById('toastMsg');
+    if (entry.attending) {
+      icon.className = 'toast-icon confirm-icon'; icon.textContent = '🎉';
+      title.textContent = 'תודה! נרשמתם בהצלחה';
+      msg.innerHTML = `<strong>${entry.firstName} ${entry.lastName}</strong>, שמחים לקבל אתכם!<br/>
+        ${entry.guests > 1 ? `מספר משתתפים: <strong>${entry.guests}</strong><br/>` : ''}
+        נתראה ב-<strong>01.06.2026</strong> 🌿`;
+    } else {
+      icon.className = 'toast-icon decline-icon'; icon.textContent = '💌';
+      title.textContent = 'תודה על התשובה';
+      msg.innerHTML = `חבל שלא תוכלו להגיע, <strong>${entry.firstName}</strong>.<br/>נשמח לראותכם בשמחות אחרות!`;
+    }
+    document.getElementById('toastOverlay').classList.add('show');
+  }
+  function closeToast() { document.getElementById('toastOverlay').classList.remove('show'); }
+  document.getElementById('toastOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeToast();
+  });
+
+  /* ── Add to Calendar ── */
+  function addToCalendar() {
+    const url = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+      + '&text=' + encodeURIComponent('בר מצווה עידו אמונה')
+      + '&dates=20260601T060000Z/20260601T110000Z'
+      + '&details=' + encodeURIComponent('בר מצווה של עידו אמונה\nעליה לתורה בבית הכנסת משכן אבנר')
+      + '&location=' + encodeURIComponent('שמחה הולצברג 12, באר שבע');
+    window.open(url, '_blank');
+  }
+
+  /* ── Share ── */
+  function openShare() {
+    const link = window.location.href;
+    const text = encodeURIComponent('הוזמנתם לבר המצווה של עידו אמונה! 🎉\nלחצו לאישור הגעה: ' + link);
+    document.getElementById('waShareLink').href = 'https://wa.me/?text=' + text;
+    document.getElementById('fbShareLink').href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(link);
+    document.getElementById('shareOverlay').classList.add('show');
+  }
+  function closeShare() { document.getElementById('shareOverlay').classList.remove('show'); }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = window.location.href;
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    closeShare();
+    const t = document.getElementById('copyToast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  /* ── Nav ── */
+  function openNavMenu() { document.getElementById('navOverlay').classList.add('show'); }
+  function closeNav()    { document.getElementById('navOverlay').classList.remove('show'); }
+
+  /* ── Map toggle ── */
+  function toggleMap() {
+    const btn = document.getElementById('mapToggleBtn');
+    const container = document.getElementById('mapContainer');
+    const isOpen = container.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+  }
+</script>
+</body>
+</html>

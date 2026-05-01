@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ניהול אישורי הגעה — בר המצווה של עידו</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:       #c9943a;
+      --gold-light: #e8c06a;
+      --navy:       #1a2a4a;
+      --navy-mid:   #2d4270;
+      --green:      #2e7d32;
+      --green-bg:   #e8f5e9;
+      --red:        #c62828;
+      --red-bg:     #fdecea;
+      --cream:      #fdfaf4;
+      --border:     #e4e9f2;
+    }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: #f0f2f7;
+      color: #1e1e1e;
+      min-height: 100vh;
+    }
+
+    /* ─── Login screen ─── */
+    #loginScreen {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(160deg, #0e1a32 0%, #1a2a4a 100%);
+      padding: 20px;
+    }
+    .login-box {
+      background: var(--cream);
+      border-radius: 24px;
+      padding: 44px 40px;
+      max-width: 380px; width: 100%;
+      text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,.5);
+      border: 1px solid rgba(201,148,58,.2);
+    }
+    .login-logo {
+      width: 70px; height: 70px; border-radius: 50%;
+      background: linear-gradient(135deg, #fdf3dc, #fce8b0);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; margin: 0 auto 20px;
+      box-shadow: 0 4px 16px rgba(201,148,58,.3);
+    }
+    .login-title {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 22px; font-weight: 700; color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .login-sub { font-size: 13px; color: #888; margin-bottom: 28px; }
+
+    .login-input {
+      width: 100%; height: 50px;
+      border: 1.8px solid var(--border); border-radius: 12px;
+      padding: 0 16px; font-family: 'Heebo', sans-serif; font-size: 16px;
+      direction: ltr; text-align: center; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      background: white; color: #1e1e1e;
+    }
+    .login-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,148,58,.15); }
+    .login-input.shake { animation: shake .4s ease; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%,60%  { transform: translateX(-6px); }
+      40%,80%  { transform: translateX(6px); }
+    }
+
+    .login-error { font-size: 12.5px; color: var(--red); min-height: 20px; margin: 8px 0 4px; }
+
+    .login-btn {
+      width: 100%; height: 50px; margin-top: 6px;
+      background: linear-gradient(135deg, var(--gold) 0%, #a07020 100%);
+      color: white; border: none; border-radius: 12px;
+      font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: opacity .15s, transform .1s;
+      box-shadow: 0 4px 16px rgba(201,148,58,.35);
+    }
+    .login-btn:hover  { opacity: .92; transform: translateY(-1px); }
+    .login-btn:active { transform: scale(.98); }
+
+    /* ─── Dashboard ─── */
+    #dashboard { display: none; }
+
+    .topbar {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      padding: 16px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+      box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    }
+    .topbar-title {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 20px; font-weight: 700; color: var(--gold-light);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+    .topbar-btn {
+      height: 36px; padding: 0 16px; border-radius: 8px;
+      border: 1.5px solid rgba(201,148,58,.4);
+      background: rgba(201,148,58,.1); color: var(--gold-light);
+      font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .topbar-btn:hover { background: rgba(201,148,58,.2); }
+    .topbar-btn.logout { border-color: rgba(255,100,100,.3); color: #f0a0a0; background: rgba(200,50,50,.1); }
+    .topbar-btn.logout:hover { background: rgba(200,50,50,.2); }
+
+    /* ─── Stats ─── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      padding: 24px 24px 0;
+      max-width: 1000px; margin: 0 auto;
+    }
+    .stat-card {
+      background: white; border-radius: 16px; padding: 20px 20px 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .stat-label { font-size: 11.5px; font-weight: 700; color: #888; letter-spacing: .06em; }
+    .stat-value { font-size: 36px; font-weight: 800; line-height: 1; }
+    .stat-sub   { font-size: 12px; color: #aaa; }
+
+    .stat-total  .stat-value { color: var(--navy); }
+    .stat-yes    .stat-value { color: var(--green); }
+    .stat-guests .stat-value { color: var(--gold); }
+    .stat-no     .stat-value { color: #e07040; }
+
+    /* ─── Table section ─── */
+    .table-section {
+      max-width: 1000px; margin: 20px auto 40px;
+      padding: 0 24px;
+    }
+    .table-card {
+      background: white; border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      border: 1px solid var(--border); overflow: hidden;
+    }
+    .table-toolbar {
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+    }
+    .search-input {
+      flex: 1; min-width: 200px; height: 40px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 0 14px; font-family: 'Heebo', sans-serif; font-size: 14px;
+      outline: none; direction: rtl; background: #f9fafc;
+      transition: border-color .2s;
+    }
+    .search-input:focus { border-color: var(--gold); background: white; }
+
+    .filter-btns { display: flex; gap: 6px; }
+    .filter-btn {
+      height: 36px; padding: 0 14px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: white;
+      font-family: 'Heebo', sans-serif; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: all .15s; color: #666;
+    }
+    .filter-btn.active-all     { background: var(--navy); border-color: var(--navy); color: white; }
+    .filter-btn.active-yes     { background: var(--green-bg); border-color: #a5d6a7; color: var(--green); }
+    .filter-btn.active-no      { background: var(--red-bg); border-color: #ef9a9a; color: var(--red); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead th {
+      background: #f8f9fc; color: #555; font-weight: 700;
+      padding: 12px 16px; text-align: right;
+      border-bottom: 2px solid var(--border);
+      font-size: 12px; letter-spacing: .03em;
+    }
+    tbody td { padding: 13px 16px; border-bottom: 1px solid #f0f2f7; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafbff; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 50px;
+      font-size: 12px; font-weight: 700;
+    }
+    .badge-yes { background: var(--green-bg); color: var(--green); }
+    .badge-no  { background: var(--red-bg);   color: var(--red); }
+
+    .guest-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 8px;
+      background: #f0f4ff; color: var(--navy-mid); font-weight: 700;
+      font-size: 13px;
+    }
+
+    .del-btn {
+      width: 30px; height: 30px; border-radius: 8px;
+      border: 1.5px solid #f0c8c8; background: var(--red-bg);
+      color: var(--red); cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; opacity: .7;
+    }
+    .del-btn:hover { opacity: 1; transform: scale(1.1); }
+
+    .empty-state {
+      padding: 48px; text-align: center; color: #b0b8cc; font-size: 14px;
+    }
+    .empty-state svg { opacity: .3; margin-bottom: 12px; }
+
+    /* ─── Loading spinner ─── */
+    .loading {
+      padding: 40px; text-align: center; color: #aaa; font-size: 14px;
+    }
+    .loading-ring {
+      width: 32px; height: 32px; margin: 0 auto 12px;
+      border: 3px solid #e0e4ef; border-top-color: var(--gold);
+      border-radius: 50%; animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 600px) {
+      .topbar { padding: 12px 16px; }
+      .stats-grid, .table-section { padding: 16px 12px; }
+      thead th:nth-child(5), tbody td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Login Screen ── -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">🔐</div>
+    <div class="login-title">אזור ניהול</div>
+    <div class="login-sub">בר המצווה של עידו אמונה</div>
+    <input type="password" id="pwInput" class="login-input" placeholder="הזינו סיסמת ניהול"
+      onkeydown="if(event.key==='Enter') doLogin()" />
+    <div class="login-error" id="loginError"></div>
+    <button class="login-btn" onclick="doLogin()">כניסה</button>
+  </div>
+</div>
+
+<!-- ── Dashboard ── -->
+<div id="dashboard">
+
+  <div class="topbar">
+    <div class="topbar-title">
+      ✡ &nbsp;ניהול אישורי הגעה — עידו אמונה
+    </div>
+    <div class="topbar-actions">
+      <button class="topbar-btn" onclick="exportCSV()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        ייצוא CSV
+      </button>
+      <button class="topbar-btn logout" onclick="logout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        יציאה
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card stat-total"><div class="stat-label">סה״כ תשובות</div><div class="stat-value" id="s-total">—</div></div>
+    <div class="stat-card stat-yes"><div class="stat-label">מגיעים</div><div class="stat-value" id="s-yes">—</div><div class="stat-sub">משפחות</div></div>
+    <div class="stat-card stat-guests"><div class="stat-label">סה״כ אורחים</div><div class="stat-value" id="s-guests">—</div><div class="stat-sub">אנשים</div></div>
+    <div class="stat-card stat-no"><div class="stat-label">לא מגיעים</div><div class="stat-value" id="s-no">—</div></div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-section">
+    <div class="table-card">
+      <div class="table-toolbar">
+        <input type="text" class="search-input" id="searchInput" placeholder="🔍  חיפוש לפי שם או טלפון..." />
+        <div class="filter-btns">
+          <button class="filter-btn active-all" id="f-all" onclick="setFilter('all')">הכל</button>
+          <button class="filter-btn" id="f-yes"  onclick="setFilter('yes')">✔ מגיעים</button>
+          <button class="filter-btn" id="f-no"   onclick="setFilter('no')">✘ לא מגיעים</button>
+        </div>
+      </div>
+      <div id="tableContainer">
+        <div class="loading"><div class="loading-ring"></div>טוען...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:5050/api/rsvp'
+    : '/api/rsvp';
+  let adminPw  = sessionStorage.getItem('adminPw') || '';
+  let allData  = [];
+  let filter   = 'all';
+
+  /* ── Init ── */
+  window.addEventListener('load', () => {
+    if (adminPw) tryAutoLogin();
+    else showLogin();
+  });
+
+  function showLogin() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboard').style.display = 'none';
+    setTimeout(() => document.getElementById('pwInput').focus(), 100);
+  }
+
+  async function tryAutoLogin() {
+    try {
+      await loadStats();
+      showDashboard();
+    } catch {
+      adminPw = ''; sessionStorage.removeItem('adminPw');
+      showLogin();
+    }
+  }
+
+  async function doLogin() {
+    const pw = document.getElementById('pwInput').value;
+    if (!pw) return;
+    adminPw = pw;
+    try {
+      await loadStats();
+      sessionStorage.setItem('adminPw', pw);
+      document.getElementById('loginError').textContent = '';
+      showDashboard();
+    } catch {
+      adminPw = '';
+      const inp = document.getElementById('pwInput');
+      document.getElementById('loginError').textContent = 'סיסמה שגויה, נסו שנית';
+      inp.classList.add('shake');
+      inp.select();
+      setTimeout(() => inp.classList.remove('shake'), 400);
+    }
+  }
+
+  function showDashboard() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadAll();
+  }
+
+  function logout() {
+    adminPw = ''; sessionStorage.removeItem('adminPw');
+    document.getElementById('pwInput').value = '';
+    showLogin();
+  }
+
+  /* ── Helpers ── */
+  function authHeaders() { return { 'X-Admin-Password': adminPw }; }
+
+  async function loadStats() {
+    const res = await fetch(`${API_BASE}/stats`, { headers: authHeaders() });
+    if (res.status === 401) throw new Error('401');
+    const s = await res.json();
+    document.getElementById('s-total').textContent   = s.totalResponses;
+    document.getElementById('s-yes').textContent     = s.attending;
+    document.getElementById('s-guests').textContent  = s.totalGuests;
+    document.getElementById('s-no').textContent      = s.notAttending;
+  }
+
+  async function loadAll() {
+    document.getElementById('tableContainer').innerHTML =
+      '<div class="loading"><div class="loading-ring"></div>טוען...</div>';
+    try {
+      const res = await fetch(API_BASE, { headers: authHeaders() });
+      if (res.status === 401) { logout(); return; }
+      allData = await res.json();
+      renderTable();
+      loadStats();
+    } catch (e) {
+      document.getElementById('tableContainer').innerHTML =
+        `<div class="empty-state" style="color:#d94f4f">שגיאה בטעינה: ${e.message}</div>`;
+    }
+  }
+
+  /* ── Table ── */
+  let searchTimer;
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('searchInput').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(renderTable, 200);
+    });
+  });
+
+  function setFilter(f) {
+    filter = f;
+    ['all','yes','no'].forEach(k => {
+      const btn = document.getElementById('f-'+k);
+      btn.className = 'filter-btn' + (k === f ? ` active-${k}` : '');
+    });
+    renderTable();
+  }
+
+  function renderTable() {
+    const q = document.getElementById('searchInput')?.value?.trim().toLowerCase() || '';
+
+    let rows = allData.filter(e => {
+      const matchSearch = !q ||
+        (e.firstName+' '+e.lastName).toLowerCase().includes(q) ||
+        e.phone.includes(q);
+      const matchFilter = filter === 'all' ||
+        (filter === 'yes' && e.attending) ||
+        (filter === 'no'  && !e.attending);
+      return matchSearch && matchFilter;
+    });
+
+    const container = document.getElementById('tableContainer');
+    if (!rows.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <div>לא נמצאו רשומות</div>
+        </div>`;
+      return;
+    }
+
+    const html = rows.map((e, i) => `
+      <tr>
+        <td style="color:#aaa;font-size:12px;width:36px">${i+1}</td>
+        <td><strong>${e.firstName} ${e.lastName}</strong></td>
+        <td dir="ltr" style="color:#555">${e.phone}</td>
+        <td>${e.attending ? `<span class="guest-count">${e.guests}</span>` : '<span style="color:#ccc">—</span>'}</td>
+        <td><span class="badge ${e.attending ? 'badge-yes':'badge-no'}">
+          ${e.attending ? '✔ מגיע':'✘ לא מגיע'}
+        </span></td>
+        <td style="color:#aaa;font-size:12px">${new Date(e.createdAt).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+        <td>
+          <button class="del-btn" onclick="deleteEntry(${e.id})" title="מחק">🗑</button>
+        </td>
+      </tr>`).join('');
+
+    container.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>#</th><th>שם</th><th>טלפון</th><th>אורחים</th><th>סטטוס</th><th>זמן</th><th></th>
+        </tr></thead>
+        <tbody>${html}</tbody>
+      </table>`;
+  }
+
+  async function deleteEntry(id) {
+    if (!confirm('למחוק רשומה זו?')) return;
+    const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE', headers: authHeaders() });
+    if (res.status === 401) { logout(); return; }
+    allData = allData.filter(e => e.id !== id);
+    renderTable();
+    loadStats();
+  }
+
+  /* ── CSV ── */
+  function exportCSV() {
+    if (!allData.length) { alert('אין נתונים לייצוא'); return; }
+    const BOM = '﻿';
+    const header = 'שם פרטי,שם משפחה,טלפון,אורחים,סטטוס,זמן\n';
+    const rows = allData.map(e =>
+      [e.firstName, e.lastName, e.phone, e.guests,
+       e.attending ? 'מגיע' : 'לא מגיע',
+       new Date(e.createdAt).toLocaleString('he-IL')].join(',')
+    ).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([BOM+header+rows], {type:'text/csv;charset=utf-8'}));
+    a.download = 'rsvp_ido_barmitzvah.csv';
+    a.click();
+  }
+</script>
+</body>
+</html>
