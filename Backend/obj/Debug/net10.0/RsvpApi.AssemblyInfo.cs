@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RsvpApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0dbb8a0533927714bfbbd59f939b4b68649f0829")]
 [assembly: System.Reflection.AssemblyProductAttribute("RsvpApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RsvpApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

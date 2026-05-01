@@ -199,3 +199,4 @@ C:\Users\maork\Downloads\proj\Backend\obj\Debug\net10.0\refint\RsvpApi.dll
 C:\Users\maork\Downloads\proj\Backend\obj\Debug\net10.0\RsvpApi.pdb
 C:\Users\maork\Downloads\proj\Backend\obj\Debug\net10.0\RsvpApi.genruntimeconfig.cache
 C:\Users\maork\Downloads\proj\Backend\obj\Debug\net10.0\ref\RsvpApi.dll
+C:\Users\maork\Downloads\proj\Backend\obj\Debug\net10.0\RsvpApi.sourcelink.json
