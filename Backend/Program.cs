@@ -73,7 +73,7 @@ app.Use(async (ctx, next) =>
         "default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://maps.google.com; " +
         "script-src 'self' 'unsafe-inline'; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-        "frame-src https://maps.google.com; " +
+        "frame-src https://maps.google.com https://www.google.com; " +
         "img-src 'self' data: https:;";
     await next();
 });
