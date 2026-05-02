@@ -1,5 +1,5 @@
 [build]
-buildCommand = "dotnet publish RsvpApi.csproj -c Release -o out"
+buildCommand = "dotnet publish RsvpApi.csproj -c Release -o out --self-contained -r linux-x64"
 
 [deploy]
-startCommand = "ASPNETCORE_URLS=http://0.0.0.0:$PORT dotnet out/RsvpApi.dll"
+startCommand = "./out/RsvpApi"
