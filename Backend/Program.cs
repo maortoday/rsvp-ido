@@ -63,6 +63,17 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS "SiteSettings" (
+            "Id"            INTEGER NOT NULL CONSTRAINT "PK_SiteSettings" PRIMARY KEY AUTOINCREMENT,
+            "PhoneNumber"   TEXT    NOT NULL DEFAULT '0523010253',
+            "Location"      TEXT    NOT NULL DEFAULT 'שמחה הולצברג 12 באר שבע',
+            "FamilyText"    TEXT    NOT NULL DEFAULT 'משפחת אמונה — אלי, מורן, אור ונועם',
+            "ConfirmColor"  TEXT    NOT NULL DEFAULT '#3a6b47',
+            "ImageData"     BLOB,
+            "ImageMimeType" TEXT    NOT NULL DEFAULT 'image/jpeg'
+        )
+    """);
     if (!db.SiteSettings.Any())
     {
         db.SiteSettings.Add(new RsvpApi.Models.SiteSettings());
