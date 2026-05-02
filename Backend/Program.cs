@@ -7,10 +7,6 @@ using RsvpApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Railway injects PORT at runtime — use it, fall back to 5050 locally
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5050";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-
 // ── Config ────────────────────────────────────────────────
 var adminPassword = builder.Configuration["AdminPassword"] ?? "admin";
 var allowedOrigin = builder.Configuration["AllowedOrigin"] ?? "*";
