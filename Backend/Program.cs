@@ -7,6 +7,9 @@ using RsvpApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5050";
+builder.WebHost.UseUrls($"http://+:{port}");
+
 // ── Config ────────────────────────────────────────────────
 var adminPassword = builder.Configuration["AdminPassword"] ?? "admin";
 var allowedOrigin = builder.Configuration["AllowedOrigin"] ?? "*";
