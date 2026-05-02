@@ -24,3 +24,18 @@ public record StatsResponse(
     int NotAttending,
     int TotalGuests
 );
+
+public record SettingsPublicDto(
+    string PhoneNumber,
+    string Location,
+    string FamilyText,
+    string ConfirmColor,
+    bool   HasImage
+);
+
+public record SettingsUpdateDto(
+    string? PhoneNumber,
+    string? Location,
+    string? FamilyText,
+    string? ConfirmColor
+);

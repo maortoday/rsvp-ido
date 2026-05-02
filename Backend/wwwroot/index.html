@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>אישור הגעה – בר המצווה של עידו אמונה</title>
+  <title>אישור הגעה</title>
+  <style id="dynamicStyles"></style>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -399,7 +400,7 @@
 
   <!-- ══ INVITATION ══ -->
   <div class="invitation-card">
-    <img src="images/invitation.jpg" alt="הזמנה לבר המצווה של עידו אמונה" />
+    <img id="invitationImg" src="images/invitation.jpg" alt="הזמנה" />
   </div>
 
   <!-- ══ RSVP SECTION ══ -->
@@ -415,7 +416,7 @@
     <!-- Quick actions row -->
     <div class="quick-actions">
 
-      <a href="tel:0523010253" class="qa-btn">
+      <a href="tel:0523010253" class="qa-btn" id="callBtn">
         <div class="qa-icon call">📞</div>
         <div class="qa-label">התקשר</div>
       </a>
@@ -502,18 +503,18 @@
           </span>
         </button>
         <div class="map-container" id="mapContainer">
-          <iframe
+          <iframe id="mapIframe"
             src="https://maps.google.com/maps?q=שמחה+הולצברג+12+באר+שבע&output=embed&hl=he"
             allowfullscreen loading="lazy"
             referrerpolicy="no-referrer-when-downgrade">
           </iframe>
           <div class="map-links">
-            <a class="map-link waze"
+            <a id="wazeMapLink" class="map-link waze"
                href="https://waze.com/ul?q=שמחה+הולצברג+12+באר+שבע&navigate=yes"
                target="_blank" rel="noopener">
               🚗 &nbsp;Waze
             </a>
-            <a class="map-link gmaps"
+            <a id="gmapsMapLink" class="map-link gmaps"
                href="https://maps.google.com/?q=שמחה+הולצברג+12+באר+שבע"
                target="_blank" rel="noopener">
               🗺️ &nbsp;Google Maps
@@ -523,7 +524,7 @@
       </div>
 
       <div class="card-footer">
-        <div class="card-footer-text">משפחת אמונה — אלי, מורן, אור ונועם</div>
+        <div class="card-footer-text" id="familyText">משפחת אמונה — אלי, מורן, אור ונועם</div>
       </div>
     </div>
 
@@ -571,7 +572,7 @@
       <div class="share-handle"></div>
       <div class="share-title">🧭 נווט לאירוע</div>
       <div class="share-options">
-        <a class="share-opt"
+        <a id="wazeNavLink" class="share-opt"
            href="https://waze.com/ul?q=שמחה+הולצברג+12+באר+שבע&navigate=yes"
            target="_blank" rel="noopener" onclick="closeNav()">
           <span class="share-opt-icon">🚗</span>
@@ -580,7 +581,7 @@
             <span>נווט עם Waze</span>
           </div>
         </a>
-        <a class="share-opt"
+        <a id="gmapsNavLink" class="share-opt"
            href="https://maps.google.com/?q=שמחה+הולצברג+12+באר+שבע&dirflg=d"
            target="_blank" rel="noopener" onclick="closeNav()">
           <span class="share-opt-icon">🗺️</span>
@@ -589,7 +590,7 @@
             <span>נווט עם Google Maps</span>
           </div>
         </a>
-        <a class="share-opt"
+        <a id="appleNavLink" class="share-opt"
            href="https://maps.apple.com/?q=שמחה+הולצברג+12+באר+שבע"
            target="_blank" rel="noopener" onclick="closeNav()">
           <span class="share-opt-icon">🍎</span>
@@ -617,6 +618,64 @@
   <div class="copy-toast" id="copyToast">✅ הקישור הועתק!</div>
 
 <script>
+  /* ── Settings loader ── */
+  const SETTINGS_API = window.location.hostname === 'localhost'
+    ? 'http://localhost:5050/api/settings'
+    : '/api/settings';
+
+  function lightenHex(hex, amt = 55) {
+    const n = parseInt(hex.replace('#',''), 16);
+    const r = Math.min(255, ((n >> 16) & 0xff) + amt);
+    const g = Math.min(255, ((n >> 8)  & 0xff) + amt);
+    const b = Math.min(255, ( n        & 0xff) + amt);
+    return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+  }
+
+  (async function loadSettings() {
+    try {
+      const r = await fetch(SETTINGS_API);
+      if (!r.ok) return;
+      const s = await r.json();
+
+      // Phone
+      const callBtn = document.getElementById('callBtn');
+      if (callBtn) callBtn.href = 'tel:' + s.phoneNumber;
+      window._phone = s.phoneNumber;
+
+      // Image
+      if (s.hasImage) {
+        const img = document.getElementById('invitationImg');
+        if (img) img.src = SETTINGS_API + '/image?' + Date.now();
+      }
+
+      // Location links
+      const locEnc  = encodeURIComponent(s.location);
+      const locPlus = s.location.replace(/ /g, '+');
+      window._location = s.location;
+
+      const mapIframe = document.getElementById('mapIframe');
+      if (mapIframe) mapIframe.src = `https://maps.google.com/maps?q=${locPlus}&output=embed&hl=he`;
+
+      const set = (id, attr, val) => { const el = document.getElementById(id); if (el) el[attr] = val; };
+      set('wazeMapLink',  'href', `https://waze.com/ul?q=${locEnc}&navigate=yes`);
+      set('gmapsMapLink', 'href', `https://maps.google.com/?q=${locEnc}`);
+      set('wazeNavLink',  'href', `https://waze.com/ul?q=${locEnc}&navigate=yes`);
+      set('gmapsNavLink', 'href', `https://maps.google.com/?q=${locEnc}&dirflg=d`);
+      set('appleNavLink', 'href', `https://maps.apple.com/?q=${locEnc}`);
+
+      // Family text
+      const ft = document.getElementById('familyText');
+      if (ft) ft.textContent = s.familyText;
+
+      // Button color
+      if (s.confirmColor) {
+        const light = lightenHex(s.confirmColor);
+        document.getElementById('dynamicStyles').textContent =
+          `.btn-confirm { background: linear-gradient(135deg, ${light} 0%, ${s.confirmColor} 100%) !important; box-shadow: 0 5px 20px ${s.confirmColor}66 !important; }`;
+      }
+    } catch {}
+  })();
+
   /* ── Band sparkles ── */
   (function() {
     const c = document.getElementById('bandSparks');
@@ -741,11 +800,12 @@
 
   /* ── Add to Calendar ── */
   function addToCalendar() {
+    const loc = window._location || 'שמחה הולצברג 12, באר שבע';
     const url = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
       + '&text=' + encodeURIComponent('בר מצווה עידו אמונה')
       + '&dates=20260601T060000Z/20260601T110000Z'
       + '&details=' + encodeURIComponent('בר מצווה של עידו אמונה\nעליה לתורה בבית הכנסת משכן אבנר')
-      + '&location=' + encodeURIComponent('שמחה הולצברג 12, באר שבע');
+      + '&location=' + encodeURIComponent(loc);
     window.open(url, '_blank');
   }
 

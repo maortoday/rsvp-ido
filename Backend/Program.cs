@@ -58,9 +58,17 @@ builder.Services.AddRateLimiter(opt =>
 
 var app = builder.Build();
 
-// ── Create DB on startup ──────────────────────────────────
+// ── Create DB and seed defaults on startup ────────────────
 using (var scope = app.Services.CreateScope())
-    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
+    if (!db.SiteSettings.Any())
+    {
+        db.SiteSettings.Add(new RsvpApi.Models.SiteSettings());
+        db.SaveChanges();
+    }
+}
 
 // ── Security headers ──────────────────────────────────────
 app.Use(async (ctx, next) =>
@@ -190,6 +198,59 @@ app.MapDelete("/api/rsvp/{id:int}", async (HttpContext ctx, int id, AppDbContext
     await db.SaveChangesAsync();
     return Results.NoContent();
 }).RequireRateLimiting("admin");
+
+// GET /api/settings  (public)
+app.MapGet("/api/settings", async (AppDbContext db) =>
+{
+    var s = await db.SiteSettings.FirstOrDefaultAsync() ?? new RsvpApi.Models.SiteSettings();
+    return Results.Ok(new SettingsPublicDto(
+        s.PhoneNumber, s.Location, s.FamilyText, s.ConfirmColor, s.ImageData != null));
+});
+
+// PUT /api/settings  (admin)
+app.MapPut("/api/settings", async (HttpContext ctx, SettingsUpdateDto req, AppDbContext db) =>
+{
+    if (!IsAdmin(ctx)) return Results.Unauthorized();
+    var s = await db.SiteSettings.FirstOrDefaultAsync();
+    if (s is null) { s = new RsvpApi.Models.SiteSettings(); db.SiteSettings.Add(s); }
+    if (req.PhoneNumber  is not null) s.PhoneNumber  = Sanitize(req.PhoneNumber);
+    if (req.Location     is not null) s.Location     = req.Location.Trim();
+    if (req.FamilyText   is not null) s.FamilyText   = req.FamilyText.Trim();
+    if (req.ConfirmColor is not null) s.ConfirmColor = req.ConfirmColor;
+    await db.SaveChangesAsync();
+    return Results.Ok();
+}).RequireRateLimiting("admin");
+
+// POST /api/settings/image  (admin)
+app.MapPost("/api/settings/image", async (HttpContext ctx, AppDbContext db) =>
+{
+    if (!IsAdmin(ctx)) return Results.Unauthorized();
+    var form = await ctx.Request.ReadFormAsync();
+    var file = form.Files.GetFile("image");
+    if (file is null || file.Length == 0)
+        return Results.BadRequest(new { error = "לא נבחר קובץ" });
+    var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+    if (!allowed.Contains(file.ContentType.ToLower()))
+        return Results.BadRequest(new { error = "סוג קובץ לא נתמך (JPG/PNG/WebP)" });
+    if (file.Length > 8 * 1024 * 1024)
+        return Results.BadRequest(new { error = "הקובץ גדול מדי (מקסימום 8MB)" });
+    using var ms = new MemoryStream();
+    await file.CopyToAsync(ms);
+    var s = await db.SiteSettings.FirstOrDefaultAsync();
+    if (s is null) { s = new RsvpApi.Models.SiteSettings(); db.SiteSettings.Add(s); }
+    s.ImageData     = ms.ToArray();
+    s.ImageMimeType = file.ContentType;
+    await db.SaveChangesAsync();
+    return Results.Ok(new { success = true });
+}).RequireRateLimiting("admin");
+
+// GET /api/settings/image  (public)
+app.MapGet("/api/settings/image", async (AppDbContext db) =>
+{
+    var s = await db.SiteSettings.FirstOrDefaultAsync();
+    if (s?.ImageData is null) return Results.NotFound();
+    return Results.File(s.ImageData, s.ImageMimeType);
+});
 
 app.Run();
 
