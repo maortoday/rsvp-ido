@@ -1,0 +1,8 @@
+[phases.install]
+cmds = ["dotnet restore RsvpApi.csproj"]
+
+[phases.build]
+cmds = ["dotnet publish RsvpApi.csproj -c Release -o out"]
+
+[start]
+cmd = "dotnet out/RsvpApi.dll"
