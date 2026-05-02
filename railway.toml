@@ -1,5 +1,5 @@
 [build]
-buildCommand = "dotnet publish Backend/RsvpApi.csproj -c Release -o publish"
+buildCommand = "dotnet publish RsvpApi.csproj -c Release -o publish"
 
 [deploy]
 startCommand = "dotnet publish/RsvpApi.dll"
