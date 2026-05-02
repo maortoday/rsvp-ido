@@ -57,8 +57,6 @@ builder.Services.AddRateLimiter(opt =>
             }));
 });
 
-builder.Services.AddDirectoryBrowser();
-
 var app = builder.Build();
 
 // ── Create DB on startup ──────────────────────────────────
@@ -84,12 +82,9 @@ app.Use(async (ctx, next) =>
 app.UseCors();
 app.UseRateLimiter();
 
-// ── Static files (index.html, admin.html, images/) ────────
-var webRoot      = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, ".."));
-var fileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(webRoot);
-
-app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fileProvider, RequestPath = "" });
-app.UseStaticFiles(new StaticFileOptions   { FileProvider = fileProvider, RequestPath = "" });
+// ── Static files from wwwroot (index.html, admin.html, images/) ──
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 // ── Helpers ───────────────────────────────────────────────
 bool IsAdmin(HttpContext ctx) =>
