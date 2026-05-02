@@ -1,0 +1,10 @@
+providers = ["dotnet"]
+
+[phases.install]
+cmds = ["dotnet restore Backend/RsvpApi.csproj"]
+
+[phases.build]
+cmds = ["dotnet publish Backend/RsvpApi.csproj -c Release -o /app/out"]
+
+[start]
+cmd = "dotnet /app/out/RsvpApi.dll"
