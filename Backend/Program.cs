@@ -78,8 +78,17 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
+app.UseExceptionHandler(err => err.Run(async ctx =>
+{
+    var ex = ctx.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+    ctx.Response.StatusCode = 500;
+    await ctx.Response.WriteAsync($"Error: {ex?.Message}\n{ex?.StackTrace}");
+}));
+
 app.UseCors();
 app.UseRateLimiter();
+
+app.MapGet("/health", () => "ok");
 
 // ── Static files from wwwroot (index.html, admin.html, images/) ──
 app.UseDefaultFiles();
