@@ -445,6 +445,15 @@
                 <input type="text" class="settings-input" id="s-family" placeholder="משפחת ישראלי" />
               </div>
 
+              <div class="field-group">
+                <div class="field-label">קוד CallMeBot לWhatsApp <span style="font-weight:400;color:#bbb;font-size:10px">— לקבלת התראות על אישורים</span></div>
+                <input type="text" class="settings-input" id="s-wakey" dir="ltr" placeholder="1234567" />
+                <div style="margin-top:6px;font-size:11.5px;color:#aaa;line-height:1.5">
+                  לקבלת קוד: שלח הודעה בוואטסאפ ל‎<span dir="ltr" style="font-family:monospace;color:#555">+34 644 59 29 50</span>
+                  עם הטקסט <span style="font-family:monospace;color:#555">I allow callmebot to send me messages</span>
+                </div>
+              </div>
+
               <!-- Color pickers -->
               <div class="field-group">
                 <div class="field-label">עיצוב כפתורים</div>
@@ -634,7 +643,7 @@
 
   async function loadAdminSettings() {
     try {
-      const r = await fetch(SETTINGS_API);
+      const r = await fetch(SETTINGS_API, { headers: authHeaders() });
       if (!r.ok) return;
       const s = await r.json();
       document.getElementById('s-title').value    = s.eventTitle  || '';
@@ -642,6 +651,7 @@
       document.getElementById('s-phone').value    = s.phoneNumber || '';
       document.getElementById('s-location').value = s.location    || '';
       document.getElementById('s-family').value   = s.familyText  || '';
+      document.getElementById('s-wakey').value    = s.whatsAppApiKey || '';
       document.getElementById('s-color-confirm').value = s.confirmColor || '#3a6b47';
       document.getElementById('s-color-decline').value = s.declineColor || '#b0b8c4';
       updateColorPreviews();
@@ -672,9 +682,10 @@
         eventDate:    document.getElementById('s-date').value.trim(),
         phoneNumber:  document.getElementById('s-phone').value.trim(),
         location:     document.getElementById('s-location').value.trim(),
-        familyText:   document.getElementById('s-family').value.trim(),
-        confirmColor: document.getElementById('s-color-confirm').value,
-        declineColor: document.getElementById('s-color-decline').value,
+        familyText:      document.getElementById('s-family').value.trim(),
+        confirmColor:    document.getElementById('s-color-confirm').value,
+        declineColor:    document.getElementById('s-color-decline').value,
+        whatsAppApiKey:  document.getElementById('s-wakey').value.trim(),
       };
       const res = await fetch(SETTINGS_API, {
         method: 'PUT',

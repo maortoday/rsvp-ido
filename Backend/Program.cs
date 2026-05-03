@@ -22,9 +22,6 @@ var smtpPort        = int.TryParse(builder.Configuration["SmtpPort"], out var sp
 var smtpUser        = builder.Configuration["SmtpUser"]            ?? "";
 var smtpPass        = builder.Configuration["SmtpPass"]            ?? "";
 var smtpFrom        = builder.Configuration["SmtpFrom"]            ?? smtpUser;
-var twilioSid       = builder.Configuration["TwilioSid"]           ?? "";
-var twilioToken     = builder.Configuration["TwilioToken"]         ?? "";
-var twilioFrom      = builder.Configuration["TwilioFrom"]          ?? "";
 var appOrigin       = builder.Configuration["AppOrigin"]           ?? "";
 
 builder.Services.AddDbContext<AppDbContext>(opt =>
@@ -103,6 +100,7 @@ using (var scope = app.Services.CreateScope())
         "ALTER TABLE Users        ADD COLUMN \"EmailResetExpiry\" TEXT",
         "ALTER TABLE Users        ADD COLUMN \"SmsResetCode\"     TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE Users        ADD COLUMN \"SmsResetExpiry\"   TEXT",
+        "ALTER TABLE Users        ADD COLUMN \"WhatsAppApiKey\"   TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE SiteSettings ADD COLUMN \"Slug\"             TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE SiteSettings ADD COLUMN \"DeclineColor\"     TEXT NOT NULL DEFAULT '#b0b8c4'",
         "ALTER TABLE SiteSettings ADD COLUMN \"EventTitle\"       TEXT NOT NULL DEFAULT ''",
@@ -212,21 +210,27 @@ async Task SendEmailAsync(string to, string subject, string htmlBody)
     catch { }
 }
 
-async Task SendSmsAsync(string to, string body)
+async Task SendWhatsAppAsync(string phone, string apiKey, string body)
 {
-    if (string.IsNullOrEmpty(twilioSid)) return;
+    if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(phone)) return;
     try
     {
+        var normalized = NormalizePhone(phone);
+        var encoded    = Uri.EscapeDataString(body);
         using var http = new HttpClient();
-        var creds = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{twilioSid}:{twilioToken}"));
-        http.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", creds);
-        await http.PostAsync(
-            $"https://api.twilio.com/2010-04-01/Accounts/{twilioSid}/Messages.json",
-            new FormUrlEncodedContent(new Dictionary<string, string>
-                { ["To"] = to, ["From"] = twilioFrom, ["Body"] = body }));
+        http.Timeout = TimeSpan.FromSeconds(10);
+        await http.GetAsync(
+            $"https://api.callmebot.com/whatsapp.php?phone={normalized}&text={encoded}&apikey={apiKey}");
     }
     catch { }
+}
+
+static string NormalizePhone(string phone)
+{
+    var digits = new string(phone.Where(char.IsDigit).ToArray());
+    if (digits.StartsWith("972")) return digits;
+    if (digits.StartsWith("0"))   return "972" + digits[1..];
+    return digits;
 }
 
 static RsvpResponse ToResponse(RsvpEntry e) =>
@@ -254,12 +258,13 @@ app.MapPost("/api/auth/register", async (RegisterRequest req, AppDbContext db, H
     var recoveryCode = GenerateRecoveryCode();
     var user = new User
     {
-        Email        = email,
-        PasswordHash = HashPassword(req.Password),
-        Slug         = slug,
-        PhoneNumber  = req.PhoneNumber?.Trim() ?? "",
-        RecoveryCode = HashPassword(recoveryCode),
-        CreatedAt    = DateTime.UtcNow
+        Email           = email,
+        PasswordHash    = HashPassword(req.Password),
+        Slug            = slug,
+        PhoneNumber     = req.PhoneNumber?.Trim()    ?? "",
+        WhatsAppApiKey  = req.WhatsAppApiKey?.Trim() ?? "",
+        RecoveryCode    = HashPassword(recoveryCode),
+        CreatedAt       = DateTime.UtcNow
     };
     db.Users.Add(user);
     db.SiteSettings.Add(new SiteSettings
@@ -269,6 +274,23 @@ app.MapPost("/api/auth/register", async (RegisterRequest req, AppDbContext db, H
         EventDate  = req.EventDate?.Trim()  ?? ""
     });
     await db.SaveChangesAsync();
+
+    // WhatsApp welcome message
+    if (!string.IsNullOrEmpty(user.WhatsAppApiKey) && !string.IsNullOrEmpty(user.PhoneNumber))
+    {
+        var origin   = string.IsNullOrEmpty(appOrigin) ? "" : appOrigin;
+        var eventUrl = $"{origin}/index.html?slug={slug}";
+        var adminUrl = $"{origin}/admin.html?slug={slug}";
+        var wazeUrl  = $"https://waze.com/ul?q={Uri.EscapeDataString(req.EventTitle ?? slug)}&navigate=yes";
+        var msg = $"🎉 ברוכים הבאים למערכת אישורי ההגעה!\n" +
+                  $"האירוע: {req.EventTitle}\n" +
+                  $"תאריך: {req.EventDate}\n\n" +
+                  $"🔗 דף האירוע: {eventUrl}\n" +
+                  $"⚙️ ממשק ניהול: {adminUrl}\n" +
+                  $"🗝️ קוד שחזור: {recoveryCode}";
+        _ = Task.Run(() => SendWhatsAppAsync(user.PhoneNumber, user.WhatsAppApiKey, msg));
+    }
+
     return Results.Ok(new RegisterResponse(slug, recoveryCode));
 }).RequireRateLimiting("auth");
 
@@ -355,7 +377,7 @@ app.MapPost("/api/auth/forgot-sms", async (ForgotSmsRequest req, AppDbContext db
         user.SmsResetCode   = HashPassword(code);
         user.SmsResetExpiry = DateTime.UtcNow.AddMinutes(10);
         await db.SaveChangesAsync();
-        _ = Task.Run(() => SendSmsAsync(user.PhoneNumber, $"קוד לאיפוס סיסמה: {code}\nתקף ל-10 דקות."));
+        _ = Task.Run(() => SendWhatsAppAsync(user.PhoneNumber, user.WhatsAppApiKey, $"קוד לאיפוס סיסמה: {code}\nתקף ל-10 דקות."));
     }
     return Results.Ok(new { message = "אם המייל קיים ומשויך למספר טלפון, נשלח SMS" });
 }).RequireRateLimiting("auth");
@@ -459,12 +481,16 @@ app.MapPost("/api/{slug}/rsvp", async (string slug, SubmitRsvpRequest req, AppDb
     db.RsvpEntries.Add(entry);
     await db.SaveChangesAsync();
 
-    // SMS notification to event admin
-    if (!string.IsNullOrEmpty(eventUser.PhoneNumber))
+    // WhatsApp notification to event admin
+    if (!string.IsNullOrEmpty(eventUser.WhatsAppApiKey) && !string.IsNullOrEmpty(eventUser.PhoneNumber))
     {
-        var status    = req.Attending ? $"מגיע/ה ✓ ({req.Guests} אורחים)" : "לא מגיע/ה ✗";
-        var notifBody = $"אישור הגעה חדש!\n{entry.FirstName} {entry.LastName} — {status}\nטלפון: {entry.Phone}";
-        _ = Task.Run(() => SendSmsAsync(eventUser.PhoneNumber, notifBody));
+        var settings  = await db.SiteSettings.FirstOrDefaultAsync(s => s.Slug == slug);
+        var status    = req.Attending ? $"✅ מגיע/ה ({req.Guests} אורחים)" : "❌ לא מגיע/ה";
+        var wazeUrl   = !string.IsNullOrEmpty(settings?.Location)
+            ? $"\n🗺️ ניווט: https://waze.com/ul?q={Uri.EscapeDataString(settings.Location)}&navigate=yes"
+            : "";
+        var msg = $"📩 אישור הגעה חדש!\n{entry.FirstName} {entry.LastName} — {status}\n📞 {entry.Phone}{wazeUrl}";
+        _ = Task.Run(() => SendWhatsAppAsync(eventUser.PhoneNumber, eventUser.WhatsAppApiKey, msg));
     }
 
     return Results.Created($"/api/{slug}/rsvp/{entry.Id}", ToResponse(entry));
@@ -509,13 +535,19 @@ app.MapDelete("/api/{slug}/rsvp/{id:int}", async (string slug, int id, HttpConte
 
 // ── Settings endpoints ────────────────────────────────────
 
-app.MapGet("/api/{slug}/settings", async (string slug, AppDbContext db) =>
+app.MapGet("/api/{slug}/settings", async (string slug, HttpContext ctx, AppDbContext db) =>
 {
     var s = await db.SiteSettings.FirstOrDefaultAsync(x => x.Slug == slug);
     if (s is null) return Results.NotFound();
-    return Results.Ok(new SettingsPublicDto(
-        s.PhoneNumber, s.Location, s.FamilyText, s.EventTitle, s.EventDate,
-        s.ConfirmColor, s.DeclineColor, s.ImageData != null));
+    var user      = await db.Users.FirstOrDefaultAsync(u => u.Slug == slug);
+    var isAdmin   = IsAdmin(ctx, user);
+    object dto    = isAdmin
+        ? new { s.PhoneNumber, s.Location, s.FamilyText, s.EventTitle, s.EventDate,
+                s.ConfirmColor, s.DeclineColor, HasImage = s.ImageData != null,
+                WhatsAppApiKey = user?.WhatsAppApiKey ?? "" }
+        : new SettingsPublicDto(s.PhoneNumber, s.Location, s.FamilyText, s.EventTitle,
+                s.EventDate, s.ConfirmColor, s.DeclineColor, s.ImageData != null);
+    return Results.Ok(dto);
 });
 
 app.MapPut("/api/{slug}/settings", async (string slug, HttpContext ctx, SettingsUpdateDto req, AppDbContext db) =>
@@ -529,8 +561,9 @@ app.MapPut("/api/{slug}/settings", async (string slug, HttpContext ctx, Settings
     if (req.FamilyText   is not null) s.FamilyText   = req.FamilyText.Trim();
     if (req.EventTitle   is not null) s.EventTitle   = req.EventTitle.Trim();
     if (req.EventDate    is not null) s.EventDate    = req.EventDate.Trim();
-    if (req.ConfirmColor is not null) s.ConfirmColor = req.ConfirmColor;
-    if (req.DeclineColor is not null) s.DeclineColor = req.DeclineColor;
+    if (req.ConfirmColor    is not null) s.ConfirmColor      = req.ConfirmColor;
+    if (req.DeclineColor    is not null) s.DeclineColor      = req.DeclineColor;
+    if (req.WhatsAppApiKey  is not null) user!.WhatsAppApiKey = req.WhatsAppApiKey.Trim();
     await db.SaveChangesAsync();
     return Results.Ok();
 }).RequireRateLimiting("admin");

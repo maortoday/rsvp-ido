@@ -6,7 +6,8 @@ public record RegisterRequest(
     string Slug,
     string PhoneNumber,
     string EventTitle,
-    string EventDate
+    string EventDate,
+    string? WhatsAppApiKey
 );
 
 public record RegisterResponse(string Slug, string RecoveryCode);
@@ -64,5 +65,6 @@ public record SettingsUpdateDto(
     string? EventTitle,
     string? EventDate,
     string? ConfirmColor,
-    string? DeclineColor
+    string? DeclineColor,
+    string? WhatsAppApiKey
 );
