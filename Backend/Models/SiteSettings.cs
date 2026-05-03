@@ -11,6 +11,7 @@ public class SiteSettings
     public string  EventDate     { get; set; } = "";
     public string  ConfirmColor  { get; set; } = "#3a6b47";
     public string  DeclineColor  { get; set; } = "#b0b8c4";
-    public byte[]? ImageData     { get; set; }
-    public string  ImageMimeType { get; set; } = "image/jpeg";
+    public string  WhatsAppTemplate { get; set; } = "";
+    public byte[]? ImageData        { get; set; }
+    public string  ImageMimeType    { get; set; } = "image/jpeg";
 }

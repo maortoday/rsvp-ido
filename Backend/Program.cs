@@ -23,6 +23,7 @@ var smtpUser        = builder.Configuration["SmtpUser"]            ?? "";
 var smtpPass        = builder.Configuration["SmtpPass"]            ?? "";
 var smtpFrom        = builder.Configuration["SmtpFrom"]            ?? smtpUser;
 var appOrigin       = builder.Configuration["AppOrigin"]           ?? "";
+var googleClientId  = builder.Configuration["GoogleClientId"]      ?? "";
 
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlite("Data Source=rsvp.db"));
@@ -99,9 +100,11 @@ using (var scope = app.Services.CreateScope())
         "ALTER TABLE Users        ADD COLUMN \"EmailResetToken\"  TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE Users        ADD COLUMN \"EmailResetExpiry\" TEXT",
         "ALTER TABLE Users        ADD COLUMN \"SmsResetCode\"     TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE Users        ADD COLUMN \"SmsResetExpiry\"   TEXT",
-        "ALTER TABLE Users        ADD COLUMN \"WhatsAppApiKey\"   TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE SiteSettings ADD COLUMN \"Slug\"             TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE Users        ADD COLUMN \"SmsResetExpiry\"     TEXT",
+        "ALTER TABLE Users        ADD COLUMN \"SessionToken\"      TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE Users        ADD COLUMN \"SessionExpiry\"     TEXT",
+        "ALTER TABLE SiteSettings ADD COLUMN \"Slug\"              TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE SiteSettings ADD COLUMN \"WhatsAppTemplate\"  TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE SiteSettings ADD COLUMN \"DeclineColor\"     TEXT NOT NULL DEFAULT '#b0b8c4'",
         "ALTER TABLE SiteSettings ADD COLUMN \"EventTitle\"       TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE SiteSettings ADD COLUMN \"EventDate\"        TEXT NOT NULL DEFAULT ''",
@@ -179,10 +182,19 @@ static bool VerifyPassword(string password, string stored)
 static string GenerateRecoveryCode() =>
     Convert.ToHexString(RandomNumberGenerator.GetBytes(6)).ToUpper();
 
-bool IsAdmin(HttpContext ctx, User? user) =>
-    user is not null &&
-    ctx.Request.Headers.TryGetValue("X-Admin-Password", out var val) &&
-    VerifyPassword(val!, user.PasswordHash);
+bool IsAdmin(HttpContext ctx, User? user)
+{
+    if (user is null) return false;
+    if (ctx.Request.Headers.TryGetValue("X-Admin-Password", out var pw) &&
+        VerifyPassword(pw!, user.PasswordHash)) return true;
+    if (ctx.Request.Headers.TryGetValue("X-Admin-Token", out var tok))
+    {
+        var t = tok.ToString();
+        if (!string.IsNullOrEmpty(t) && t == user.SessionToken && user.SessionExpiry > DateTime.UtcNow)
+            return true;
+    }
+    return false;
+}
 
 bool IsSuperAdmin(HttpContext ctx) =>
     !string.IsNullOrEmpty(superAdminPw) &&
@@ -210,33 +222,49 @@ async Task SendEmailAsync(string to, string subject, string htmlBody)
     catch { }
 }
 
-async Task SendWhatsAppAsync(string phone, string apiKey, string body)
-{
-    if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(phone)) return;
-    try
-    {
-        var normalized = NormalizePhone(phone);
-        var encoded    = Uri.EscapeDataString(body);
-        using var http = new HttpClient();
-        http.Timeout = TimeSpan.FromSeconds(10);
-        await http.GetAsync(
-            $"https://api.callmebot.com/whatsapp.php?phone={normalized}&text={encoded}&apikey={apiKey}");
-    }
-    catch { }
-}
-
-static string NormalizePhone(string phone)
-{
-    var digits = new string(phone.Where(char.IsDigit).ToArray());
-    if (digits.StartsWith("972")) return digits;
-    if (digits.StartsWith("0"))   return "972" + digits[1..];
-    return digits;
-}
 
 static RsvpResponse ToResponse(RsvpEntry e) =>
     new(e.Id, e.FirstName, e.LastName, e.Phone, e.Guests, e.Attending, e.CreatedAt);
 
+// ── Public config ─────────────────────────────────────────
+
+app.MapGet("/api/config", () => Results.Ok(new
+{
+    googleClientId = string.IsNullOrEmpty(googleClientId) ? null : googleClientId
+}));
+
 // ── Auth ──────────────────────────────────────────────────
+
+app.MapPost("/api/auth/google", async (GoogleAuthRequest req, AppDbContext db) =>
+{
+    if (string.IsNullOrEmpty(req.Credential)) return Results.BadRequest(new { error = "חסר credential" });
+    try
+    {
+        using var http = new HttpClient();
+        http.Timeout = TimeSpan.FromSeconds(10);
+        var resp = await http.GetAsync(
+            $"https://oauth2.googleapis.com/tokeninfo?id_token={Uri.EscapeDataString(req.Credential)}");
+        if (!resp.IsSuccessStatusCode) return Results.Unauthorized();
+
+        var info  = await resp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var email = info.GetProperty("email").GetString()?.ToLower().Trim() ?? "";
+        var aud   = info.TryGetProperty("aud", out var audEl) ? audEl.GetString() ?? "" : "";
+
+        if (!string.IsNullOrEmpty(googleClientId) && aud != googleClientId) return Results.Unauthorized();
+        if (string.IsNullOrEmpty(email)) return Results.Unauthorized();
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user is null)
+            return Results.Ok(new { status = "new_user", email });
+
+        var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        user.SessionToken  = sessionToken;
+        user.SessionExpiry = DateTime.UtcNow.AddHours(12);
+        await db.SaveChangesAsync();
+        return Results.Ok(new { status = "login", slug = user.Slug, adminToken = sessionToken });
+    }
+    catch { return Results.Unauthorized(); }
+}).RequireRateLimiting("auth");
 
 app.MapPost("/api/auth/register", async (RegisterRequest req, AppDbContext db, HttpContext ctx) =>
 {
@@ -258,13 +286,12 @@ app.MapPost("/api/auth/register", async (RegisterRequest req, AppDbContext db, H
     var recoveryCode = GenerateRecoveryCode();
     var user = new User
     {
-        Email           = email,
-        PasswordHash    = HashPassword(req.Password),
-        Slug            = slug,
-        PhoneNumber     = req.PhoneNumber?.Trim()    ?? "",
-        WhatsAppApiKey  = req.WhatsAppApiKey?.Trim() ?? "",
-        RecoveryCode    = HashPassword(recoveryCode),
-        CreatedAt       = DateTime.UtcNow
+        Email        = email,
+        PasswordHash = HashPassword(req.Password),
+        Slug         = slug,
+        PhoneNumber  = req.PhoneNumber?.Trim() ?? "",
+        RecoveryCode = HashPassword(recoveryCode),
+        CreatedAt    = DateTime.UtcNow
     };
     db.Users.Add(user);
     db.SiteSettings.Add(new SiteSettings
@@ -274,22 +301,6 @@ app.MapPost("/api/auth/register", async (RegisterRequest req, AppDbContext db, H
         EventDate  = req.EventDate?.Trim()  ?? ""
     });
     await db.SaveChangesAsync();
-
-    // WhatsApp welcome message
-    if (!string.IsNullOrEmpty(user.WhatsAppApiKey) && !string.IsNullOrEmpty(user.PhoneNumber))
-    {
-        var origin   = string.IsNullOrEmpty(appOrigin) ? "" : appOrigin;
-        var eventUrl = $"{origin}/index.html?slug={slug}";
-        var adminUrl = $"{origin}/admin.html?slug={slug}";
-        var wazeUrl  = $"https://waze.com/ul?q={Uri.EscapeDataString(req.EventTitle ?? slug)}&navigate=yes";
-        var msg = $"🎉 ברוכים הבאים למערכת אישורי ההגעה!\n" +
-                  $"האירוע: {req.EventTitle}\n" +
-                  $"תאריך: {req.EventDate}\n\n" +
-                  $"🔗 דף האירוע: {eventUrl}\n" +
-                  $"⚙️ ממשק ניהול: {adminUrl}\n" +
-                  $"🗝️ קוד שחזור: {recoveryCode}";
-        _ = Task.Run(() => SendWhatsAppAsync(user.PhoneNumber, user.WhatsAppApiKey, msg));
-    }
 
     return Results.Ok(new RegisterResponse(slug, recoveryCode));
 }).RequireRateLimiting("auth");
@@ -377,7 +388,7 @@ app.MapPost("/api/auth/forgot-sms", async (ForgotSmsRequest req, AppDbContext db
         user.SmsResetCode   = HashPassword(code);
         user.SmsResetExpiry = DateTime.UtcNow.AddMinutes(10);
         await db.SaveChangesAsync();
-        _ = Task.Run(() => SendWhatsAppAsync(user.PhoneNumber, user.WhatsAppApiKey, $"קוד לאיפוס סיסמה: {code}\nתקף ל-10 דקות."));
+        // SMS via WhatsApp removed — user receives code via email or can use recovery code
     }
     return Results.Ok(new { message = "אם המייל קיים ומשויך למספר טלפון, נשלח SMS" });
 }).RequireRateLimiting("auth");
@@ -481,17 +492,6 @@ app.MapPost("/api/{slug}/rsvp", async (string slug, SubmitRsvpRequest req, AppDb
     db.RsvpEntries.Add(entry);
     await db.SaveChangesAsync();
 
-    // WhatsApp notification to event admin
-    if (!string.IsNullOrEmpty(eventUser.WhatsAppApiKey) && !string.IsNullOrEmpty(eventUser.PhoneNumber))
-    {
-        var settings  = await db.SiteSettings.FirstOrDefaultAsync(s => s.Slug == slug);
-        var status    = req.Attending ? $"✅ מגיע/ה ({req.Guests} אורחים)" : "❌ לא מגיע/ה";
-        var wazeUrl   = !string.IsNullOrEmpty(settings?.Location)
-            ? $"\n🗺️ ניווט: https://waze.com/ul?q={Uri.EscapeDataString(settings.Location)}&navigate=yes"
-            : "";
-        var msg = $"📩 אישור הגעה חדש!\n{entry.FirstName} {entry.LastName} — {status}\n📞 {entry.Phone}{wazeUrl}";
-        _ = Task.Run(() => SendWhatsAppAsync(eventUser.PhoneNumber, eventUser.WhatsAppApiKey, msg));
-    }
 
     return Results.Created($"/api/{slug}/rsvp/{entry.Id}", ToResponse(entry));
 }).RequireRateLimiting("rsvp-submit");
@@ -540,14 +540,9 @@ app.MapGet("/api/{slug}/settings", async (string slug, HttpContext ctx, AppDbCon
     var s = await db.SiteSettings.FirstOrDefaultAsync(x => x.Slug == slug);
     if (s is null) return Results.NotFound();
     var user      = await db.Users.FirstOrDefaultAsync(u => u.Slug == slug);
-    var isAdmin   = IsAdmin(ctx, user);
-    object dto    = isAdmin
-        ? new { s.PhoneNumber, s.Location, s.FamilyText, s.EventTitle, s.EventDate,
-                s.ConfirmColor, s.DeclineColor, HasImage = s.ImageData != null,
-                WhatsAppApiKey = user?.WhatsAppApiKey ?? "" }
-        : new SettingsPublicDto(s.PhoneNumber, s.Location, s.FamilyText, s.EventTitle,
-                s.EventDate, s.ConfirmColor, s.DeclineColor, s.ImageData != null);
-    return Results.Ok(dto);
+    return Results.Ok(new SettingsPublicDto(
+        s.PhoneNumber, s.Location, s.FamilyText, s.EventTitle, s.EventDate,
+        s.ConfirmColor, s.DeclineColor, s.ImageData != null, s.WhatsAppTemplate));
 });
 
 app.MapPut("/api/{slug}/settings", async (string slug, HttpContext ctx, SettingsUpdateDto req, AppDbContext db) =>
@@ -561,9 +556,9 @@ app.MapPut("/api/{slug}/settings", async (string slug, HttpContext ctx, Settings
     if (req.FamilyText   is not null) s.FamilyText   = req.FamilyText.Trim();
     if (req.EventTitle   is not null) s.EventTitle   = req.EventTitle.Trim();
     if (req.EventDate    is not null) s.EventDate    = req.EventDate.Trim();
-    if (req.ConfirmColor    is not null) s.ConfirmColor      = req.ConfirmColor;
-    if (req.DeclineColor    is not null) s.DeclineColor      = req.DeclineColor;
-    if (req.WhatsAppApiKey  is not null) user!.WhatsAppApiKey = req.WhatsAppApiKey.Trim();
+    if (req.ConfirmColor      is not null) s.ConfirmColor      = req.ConfirmColor;
+    if (req.DeclineColor      is not null) s.DeclineColor      = req.DeclineColor;
+    if (req.WhatsAppTemplate  is not null) s.WhatsAppTemplate  = req.WhatsAppTemplate.Trim();
     await db.SaveChangesAsync();
     return Results.Ok();
 }).RequireRateLimiting("admin");

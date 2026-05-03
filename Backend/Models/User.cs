@@ -12,6 +12,7 @@ public class User
     public DateTime? EmailResetExpiry     { get; set; }
     public string    SmsResetCode         { get; set; } = "";
     public DateTime? SmsResetExpiry       { get; set; }
-    public string    WhatsAppApiKey       { get; set; } = "";
+    public string    SessionToken         { get; set; } = "";
+    public DateTime? SessionExpiry        { get; set; }
     public DateTime  CreatedAt            { get; set; } = DateTime.UtcNow;
 }

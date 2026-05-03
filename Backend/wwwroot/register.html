@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>מערכת אישורי הגעה</title>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -14,14 +15,12 @@
     }
     body {
       font-family: 'Heebo', sans-serif; min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      padding: 20px;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
       background: radial-gradient(ellipse at 20% 10%, #243d6a 0%, #0d1b33 50%, #060e1f 100%);
     }
-    /* animated orbs */
     body::before, body::after {
       content: ''; position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
-      filter: blur(80px); opacity: .25;
+      filter: blur(80px); opacity: .22;
     }
     body::before {
       width: 500px; height: 500px; top: -150px; right: -100px;
@@ -36,26 +35,25 @@
     @keyframes orbFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-30px)} }
 
     .card {
-      background: rgba(255,255,255,.97);
-      border-radius: 28px; width: 100%; max-width: 460px;
-      box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.1);
+      background: rgba(255,255,255,.97); border-radius: 28px;
+      width: 100%; max-width: 480px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08);
       overflow: hidden; position: relative; z-index: 1;
     }
 
-    /* Header */
     .card-header {
       background: linear-gradient(145deg, var(--navy) 0%, var(--navy-mid) 50%, var(--navy-light) 100%);
-      padding: 32px 28px 26px; text-align: center; position: relative; overflow: hidden;
+      padding: 30px 28px 24px; text-align: center; position: relative; overflow: hidden;
     }
     .card-header::after {
       content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
       background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
     }
     .header-icon {
-      width: 66px; height: 66px; border-radius: 20px;
+      width: 64px; height: 64px; border-radius: 18px;
       background: linear-gradient(135deg, #fdf3dc, #fce8b0);
       display: flex; align-items: center; justify-content: center;
-      font-size: 30px; margin: 0 auto 14px;
+      font-size: 28px; margin: 0 auto 14px;
       box-shadow: 0 8px 24px rgba(201,148,58,.4);
     }
     .header-title { font-family: 'Frank Ruhl Libre', serif; font-size: 22px; font-weight: 900; color: white; }
@@ -64,51 +62,64 @@
     /* Tabs */
     .tabs { display: flex; background: white; border-bottom: 2px solid var(--border); }
     .tab {
-      flex: 1; padding: 15px; text-align: center; font-size: 14px; font-weight: 700;
+      flex: 1; padding: 14px; text-align: center; font-size: 14px; font-weight: 700;
       color: #94a3b8; cursor: pointer; border-bottom: 3px solid transparent;
       margin-bottom: -2px; transition: color .15s, border-color .15s;
     }
     .tab.active { color: var(--navy); border-bottom-color: var(--gold); }
 
     /* Panels */
-    .panel { display: none; padding: 26px 28px; }
+    .panel { display: none; padding: 24px 28px; }
     .panel.active { display: block; }
+
+    /* Google button */
+    .google-btn {
+      width: 100%; height: 48px; border-radius: 12px;
+      border: 1.8px solid var(--border); background: white;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      font-family: 'Heebo', sans-serif; font-size: 15px; font-weight: 600; color: #374151;
+      cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s;
+      margin-bottom: 4px;
+    }
+    .google-btn:hover { background: #f9fafb; border-color: #9ca3af; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .google-btn svg { flex-shrink: 0; }
+    .divider { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+    .divider-line { flex: 1; height: 1px; background: var(--border); }
+    .divider-text { font-size: 11.5px; color: #94a3b8; white-space: nowrap; }
 
     /* Fields */
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     @media (max-width: 420px) { .field-row { grid-template-columns: 1fr; } }
-    .field { margin-bottom: 14px; }
-    .field-label { font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: .07em; margin-bottom: 6px; display: block; }
-
+    .field { margin-bottom: 12px; }
+    .field-label { font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: .07em; margin-bottom: 5px; display: block; }
     .input-wrap { position: relative; }
     .input-icon {
       position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
       color: #94a3b8; pointer-events: none; display: flex;
     }
     .field-input {
-      width: 100%; height: 48px; border: 1.8px solid var(--border); border-radius: 12px;
+      width: 100%; height: 46px; border: 1.8px solid var(--border); border-radius: 12px;
       padding: 0 40px 0 14px; font-family: 'Heebo', sans-serif; font-size: 15px;
-      background: #f8fafc; color: #0f172a; outline: none; transition: border-color .2s, background .2s, box-shadow .2s;
+      background: #f8fafc; color: #0f172a; outline: none;
+      transition: border-color .2s, background .2s, box-shadow .2s; direction: rtl;
     }
     .field-input:focus { border-color: var(--gold); background: white; box-shadow: 0 0 0 3px rgba(201,148,58,.1); }
-    .field-input.error { border-color: var(--red); }
-    .field-input[dir="ltr"] { text-align: left; padding-right: 14px; padding-left: 40px; }
+    .field-input[dir="ltr"] { text-align: left; padding-right: 14px; padding-left: 40px; direction: ltr; }
+    .field-input.ltr-icon  { padding-left: 40px; }
     .field-input[type="date"] { padding-right: 14px; }
-
     .eye-btn {
       position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
       background: none; border: none; cursor: pointer; color: #94a3b8;
       display: flex; align-items: center; transition: color .15s; padding: 4px;
     }
     .eye-btn:hover { color: #475569; }
-
-    .slug-preview { font-size: 11px; color: #94a3b8; margin-top: 5px; direction: ltr; text-align: left; }
+    .slug-preview { font-size: 11px; color: #94a3b8; margin-top: 4px; direction: ltr; text-align: left; }
     .slug-preview strong { color: var(--navy-mid); }
-    .field-hint { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+    .field-hint { font-size: 11px; color: #94a3b8; margin-top: 3px; }
 
     /* Buttons */
     .btn-primary {
-      width: 100%; height: 52px; border-radius: 14px; border: none; margin-top: 4px;
+      width: 100%; height: 50px; border-radius: 13px; border: none; margin-top: 4px;
       background: linear-gradient(135deg, var(--gold) 0%, #a07020 100%);
       color: white; font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 700;
       cursor: pointer; box-shadow: 0 6px 20px rgba(201,148,58,.35);
@@ -116,14 +127,8 @@
     }
     .btn-primary:hover { opacity: .92; transform: translateY(-1px); }
     .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .error-msg { font-size: 12.5px; color: var(--red); text-align: center; min-height: 18px; margin: 6px 0 2px; }
 
-    .error-msg { font-size: 12.5px; color: var(--red); text-align: center; min-height: 20px; margin: 6px 0 2px; }
-
-    .divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; }
-    .divider-line { flex: 1; height: 1px; background: var(--border); }
-    .divider-text { font-size: 11px; color: #94a3b8; white-space: nowrap; }
-
-    /* Footer */
     .card-footer { padding: 14px 28px 20px; border-top: 1px solid var(--border); text-align: center; font-size: 13px; color: #94a3b8; }
     .card-footer a { color: var(--navy-mid); font-weight: 600; text-decoration: none; }
     .card-footer a:hover { text-decoration: underline; }
@@ -138,9 +143,8 @@
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
     .modal-box {
       background: var(--cream); border-radius: 24px; padding: 36px 32px;
-      max-width: 400px; width: 100%; text-align: center;
-      box-shadow: 0 24px 80px rgba(0,0,0,.4);
-      border: 1.5px solid rgba(201,148,58,.3);
+      max-width: 420px; width: 100%; text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,.4); border: 1.5px solid rgba(201,148,58,.3);
       animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
     }
     @keyframes popIn { from{transform:scale(.85);opacity:0} to{transform:scale(1);opacity:1} }
@@ -150,9 +154,8 @@
     .recovery-box {
       background: #f1f5f9; border: 2px dashed var(--gold); border-radius: 14px;
       padding: 16px; margin: 18px 0 4px;
-      font-family: monospace; font-size: 24px; font-weight: 700;
-      letter-spacing: 5px; color: var(--navy); cursor: pointer;
-      transition: background .15s;
+      font-family: monospace; font-size: 22px; font-weight: 700;
+      letter-spacing: 5px; color: var(--navy); cursor: pointer; transition: background .15s;
     }
     .recovery-box:hover { background: #e8eef6; }
     .copy-hint { font-size: 11px; color: #94a3b8; margin-bottom: 14px; }
@@ -182,26 +185,36 @@
     <div class="tab"        id="tab-login"    onclick="switchTab('login')">כניסה</div>
   </div>
 
-  <!-- Register -->
+  <!-- ── Register ── -->
   <div class="panel active" id="panel-register">
+
+    <!-- Google sign-in -->
+    <div id="google-register-wrap">
+      <button class="google-btn" onclick="startGoogle('register')">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+        המשך עם Google
+      </button>
+      <div class="divider"><div class="divider-line"></div><div class="divider-text">או עם מייל וסיסמה</div><div class="divider-line"></div></div>
+    </div>
+
     <div class="field-row">
       <div class="field">
         <label class="field-label">שם האירוע</label>
         <div class="input-wrap">
-          <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>
+          <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>
           <input class="field-input" type="text" id="r-title" placeholder='בר מצווה של דן' />
         </div>
       </div>
       <div class="field">
         <label class="field-label">תאריך האירוע</label>
-        <input class="field-input" type="date" id="r-date" />
+        <input class="field-input" type="date" id="r-date" style="padding-right:14px" />
       </div>
     </div>
 
     <div class="field">
       <label class="field-label">קוד האירוע (כתובת העמוד)</label>
       <div class="input-wrap">
-        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+        <span class="input-icon" style="right:auto;left:13px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
         <input class="field-input" type="text" id="r-slug" placeholder="dan-bar-mitzva" dir="ltr" oninput="updateSlugPreview()" />
       </div>
       <div class="slug-preview" id="slugPreview">כתובת: <strong>—</strong></div>
@@ -211,32 +224,16 @@
     <div class="field">
       <label class="field-label">כתובת מייל</label>
       <div class="input-wrap">
-        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        <span class="input-icon" style="right:auto;left:13px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
         <input class="field-input" type="email" id="r-email" placeholder="you@example.com" dir="ltr" />
       </div>
     </div>
 
     <div class="field">
-      <label class="field-label">מספר טלפון (לקבלת התראות WhatsApp)</label>
+      <label class="field-label">מספר טלפון</label>
       <div class="input-wrap">
-        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.87-.87a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.28 16z"/></svg></span>
+        <span class="input-icon" style="right:auto;left:13px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.87-.87a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.28 16z"/></svg></span>
         <input class="field-input" type="tel" id="r-phone" placeholder="+972501234567" dir="ltr" />
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="field-label">
-        קוד CallMeBot לWhatsApp
-        <span style="font-weight:400;color:rgba(255,255,255,.4);font-size:11px"> — אופציונלי, לקבלת התראות</span>
-      </label>
-      <div class="input-wrap">
-        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="m8 21 4-4 4 4"/><path d="M12 17v4"/></svg></span>
-        <input class="field-input" type="text" id="r-wakey" placeholder="1234567" dir="ltr" />
-      </div>
-      <div style="margin-top:8px;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-size:12px;color:rgba(255,255,255,.5);line-height:1.6">
-        כדי לקבל את הקוד: שלח הודעה בוואטסאפ למספר
-        <span dir="ltr" style="color:rgba(255,255,255,.8);font-family:monospace">+34 644 59 29 50</span>
-        עם הטקסט <span style="color:rgba(255,255,255,.8);font-family:monospace">I allow callmebot to send me messages</span> ← תקבל API key בהודעה חזרה
       </div>
     </div>
 
@@ -244,18 +241,18 @@
       <div class="field">
         <label class="field-label">סיסמה</label>
         <div class="input-wrap">
-          <input class="field-input" type="password" id="r-pass" placeholder="לפחות 6 תווים" />
+          <input class="field-input" type="password" id="r-pass" placeholder="לפחות 6 תווים" dir="ltr" style="padding-right:14px;padding-left:40px" />
           <button type="button" class="eye-btn" onclick="togglePw('r-pass',this)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
       </div>
       <div class="field">
         <label class="field-label">אימות סיסמה</label>
         <div class="input-wrap">
-          <input class="field-input" type="password" id="r-pass2" placeholder="חזרו על הסיסמה" />
+          <input class="field-input" type="password" id="r-pass2" placeholder="חזרו על הסיסמה" dir="ltr" style="padding-right:14px;padding-left:40px" />
           <button type="button" class="eye-btn" onclick="togglePw('r-pass2',this)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
       </div>
@@ -265,28 +262,71 @@
     <button class="btn-primary" id="r-btn" onclick="doRegister()">✨ צור אירוע</button>
   </div>
 
-  <!-- Login -->
+  <!-- ── Login ── -->
   <div class="panel" id="panel-login">
+    <div id="google-login-wrap">
+      <button class="google-btn" onclick="startGoogle('login')">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+        כניסה עם Google
+      </button>
+      <div class="divider"><div class="divider-line"></div><div class="divider-text">או עם מייל וסיסמה</div><div class="divider-line"></div></div>
+    </div>
+
     <div class="field">
       <label class="field-label">כתובת מייל</label>
       <div class="input-wrap">
-        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
-        <input class="field-input" type="email" id="l-email" placeholder="you@example.com"
-          dir="ltr" onkeydown="if(event.key==='Enter') doLogin()" />
+        <span class="input-icon" style="right:auto;left:13px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        <input class="field-input" type="email" id="l-email" placeholder="you@example.com" dir="ltr" onkeydown="if(event.key==='Enter') doLogin()" />
       </div>
     </div>
     <div class="field">
       <label class="field-label">סיסמה</label>
       <div class="input-wrap">
-        <input class="field-input" type="password" id="l-pass" placeholder="הסיסמה שלכם"
-          onkeydown="if(event.key==='Enter') doLogin()" />
+        <input class="field-input" type="password" id="l-pass" placeholder="הסיסמה שלכם" dir="ltr" style="padding-right:14px;padding-left:40px" onkeydown="if(event.key==='Enter') doLogin()" />
         <button type="button" class="eye-btn" onclick="togglePw('l-pass',this)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </div>
     </div>
     <div class="error-msg" id="l-error"></div>
     <button class="btn-primary" id="l-btn" onclick="doLogin()">כניסה לניהול</button>
+  </div>
+
+  <!-- ── Google new-user setup ── -->
+  <div class="panel" id="panel-google-setup">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:28px;margin-bottom:6px">🎉</div>
+      <div style="font-size:15px;font-weight:700;color:var(--navy)">כמעט סיימנו!</div>
+      <div style="font-size:12.5px;color:#64748b;margin-top:4px">בחרו קוד לאירוע ופרטים בסיסיים</div>
+    </div>
+    <div class="field">
+      <label class="field-label">מייל (Google)</label>
+      <input class="field-input" type="email" id="gs-email" readonly dir="ltr" style="background:#f1f5f9;color:#64748b" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">שם האירוע</label>
+        <input class="field-input" type="text" id="gs-title" placeholder='בר מצווה של דן' />
+      </div>
+      <div class="field">
+        <label class="field-label">תאריך</label>
+        <input class="field-input" type="date" id="gs-date" style="padding-right:14px" />
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">קוד האירוע (כתובת העמוד)</label>
+      <div class="input-wrap">
+        <span class="input-icon" style="right:auto;left:13px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+        <input class="field-input" type="text" id="gs-slug" placeholder="dan-bar-mitzva" dir="ltr" oninput="updateSlugPreviewGs()" />
+      </div>
+      <div class="slug-preview" id="gsSlugPreview">כתובת: <strong>—</strong></div>
+    </div>
+    <div class="field">
+      <label class="field-label">מספר טלפון</label>
+      <input class="field-input" type="tel" id="gs-phone" placeholder="+972501234567" dir="ltr" />
+    </div>
+    <div class="error-msg" id="gs-error"></div>
+    <button class="btn-primary" id="gs-btn" onclick="doGoogleSetup()">✨ צור אירוע</button>
   </div>
 
   <div class="card-footer">
@@ -299,26 +339,25 @@
   <div class="modal-box">
     <div class="modal-icon">🔑</div>
     <div class="modal-title">שמרו את קוד השחזור!</div>
-    <div class="modal-body">זהו הקוד היחיד לאיפוס סיסמה ללא אימייל/SMS.<br/>לא ניתן לשחזר אותו מחדש.</div>
-    <div class="recovery-box" id="recoveryDisplay" onclick="copyCode()" title="לחצו להעתקה"></div>
-    <div class="copy-hint">לחצו על הקוד להעתקה ללוח</div>
+    <div class="modal-body">זהו הקוד היחיד לאיפוס סיסמה ללא אימייל.<br/>לא ניתן לשחזר אותו מחדש.</div>
+    <div class="recovery-box" id="recoveryDisplay" onclick="copyCode()"></div>
+    <div class="copy-hint">לחצו על הקוד להעתקה</div>
     <div class="warning-box">⚠️ שמרו את הקוד עכשיו — לאחר סגירת החלון לא יוצג שוב.</div>
     <button class="modal-btn" onclick="goAdmin()">הבנתי, שמרתי ←</button>
   </div>
 </div>
 
 <script>
-  const API = window.location.hostname === 'localhost' ? 'http://localhost:5050/api' : '/api';
-  let _slug = '';
+  const API = '/api';
+  let _slug = '', _adminPw = '', _adminToken = '';
 
-  const EYE_OPEN  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-  const EYE_SHUT  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  const EYE_OPEN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_SHUT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
 
   function togglePw(id, btn) {
     const inp = document.getElementById(id);
-    const show = inp.type === 'text';
-    inp.type = show ? 'password' : 'text';
-    btn.innerHTML = show ? EYE_OPEN : EYE_SHUT;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.innerHTML = inp.type === 'text' ? EYE_SHUT : EYE_OPEN;
   }
 
   function switchTab(t) {
@@ -326,14 +365,85 @@
       document.getElementById('tab-'+k).classList.toggle('active', k === t);
       document.getElementById('panel-'+k).classList.toggle('active', k === t);
     });
+    document.getElementById('panel-google-setup').classList.remove('active');
+  }
+
+  function showPanel(id) {
+    ['panel-register','panel-login','panel-google-setup'].forEach(p =>
+      document.getElementById(p).classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   }
 
   function updateSlugPreview() {
-    const val  = document.getElementById('r-slug').value.trim().toLowerCase();
-    const base = location.origin + '/index.html?slug=';
-    document.querySelector('#slugPreview strong').textContent = val ? base + val : '—';
+    const val = document.getElementById('r-slug').value.trim().toLowerCase();
+    document.querySelector('#slugPreview strong').textContent = val ? location.origin + '/index.html?slug=' + val : '—';
+  }
+  function updateSlugPreviewGs() {
+    const val = document.getElementById('gs-slug').value.trim().toLowerCase();
+    document.querySelector('#gsSlugPreview strong').textContent = val ? location.origin + '/index.html?slug=' + val : '—';
   }
 
+  /* ── Google OAuth ── */
+  let _googleTab = 'login';
+  function startGoogle(tab) {
+    _googleTab = tab;
+    // Use Google Identity Services one-tap / popup
+    window.google?.accounts.id.prompt();
+  }
+
+  async function handleGoogleCredential(response) {
+    const credential = response.credential;
+    try {
+      const res  = await fetch(`${API}/auth/google`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential })
+      });
+      if (!res.ok) { alert('שגיאה בהתחברות עם Google'); return; }
+      const data = await res.json();
+
+      if (data.status === 'login') {
+        // Existing user
+        _adminToken = data.adminToken;
+        sessionStorage.setItem('adminToken', data.adminToken);
+        sessionStorage.setItem('adminSlug', data.slug);
+        location.href = `/admin.html?slug=${data.slug}`;
+      } else if (data.status === 'new_user') {
+        // New user — show setup panel
+        document.getElementById('gs-email').value = data.email;
+        showPanel('panel-google-setup');
+      }
+    } catch { alert('שגיאת רשת'); }
+  }
+
+  async function doGoogleSetup() {
+    const btn   = document.getElementById('gs-btn');
+    const err   = document.getElementById('gs-error');
+    const email = document.getElementById('gs-email').value.trim();
+    const title = document.getElementById('gs-title').value.trim();
+    const date  = document.getElementById('gs-date').value.trim();
+    const slug  = document.getElementById('gs-slug').value.trim().toLowerCase();
+    const phone = document.getElementById('gs-phone').value.trim();
+    err.textContent = '';
+    if (!slug || !title) { err.textContent = 'שם האירוע וקוד האירוע הם שדות חובה'; return; }
+    const autoPass = btoa(crypto.getRandomValues(new Uint8Array(18)));
+    btn.disabled = true; btn.textContent = 'יוצר אירוע...';
+    try {
+      const res  = await fetch(`${API}/auth/register`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: autoPass, slug, phoneNumber: phone, eventTitle: title, eventDate: date })
+      });
+      const data = await res.json();
+      if (!res.ok) { err.textContent = data.error || 'שגיאה ביצירת חשבון'; return; }
+      _slug    = data.slug;
+      _adminPw = autoPass;
+      document.getElementById('recoveryDisplay').textContent = data.recoveryCode;
+      document.getElementById('recoveryModal').classList.add('show');
+    } catch { err.textContent = 'שגיאת רשת'; }
+    finally { btn.disabled = false; btn.textContent = '✨ צור אירוע'; }
+  }
+
+  /* ── Email/password register ── */
   async function doRegister() {
     const btn   = document.getElementById('r-btn');
     const err   = document.getElementById('r-error');
@@ -350,11 +460,12 @@
     try {
       const res  = await fetch(`${API}/auth/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pass, slug, phoneNumber: phone, eventTitle: title, eventDate: date, whatsAppApiKey: document.getElementById('r-wakey').value.trim() })
+        body: JSON.stringify({ email, password: pass, slug, phoneNumber: phone, eventTitle: title, eventDate: date })
       });
       const data = await res.json();
       if (!res.ok) { err.textContent = data.error || 'שגיאה בהרשמה'; return; }
-      _slug = data.slug;
+      _slug    = data.slug;
+      _adminPw = pass;
       document.getElementById('recoveryDisplay').textContent = data.recoveryCode;
       document.getElementById('recoveryModal').classList.add('show');
     } catch { err.textContent = 'שגיאת רשת, נסו שוב'; }
@@ -362,7 +473,7 @@
   }
 
   function copyCode() {
-    const el   = document.getElementById('recoveryDisplay');
+    const el = document.getElementById('recoveryDisplay');
     const code = el.textContent;
     navigator.clipboard.writeText(code).catch(() => {});
     el.textContent = '✓ הועתק!';
@@ -370,11 +481,12 @@
   }
 
   function goAdmin() {
-    sessionStorage.setItem('adminPw', document.getElementById('r-pass').value);
+    sessionStorage.setItem('adminPw', _adminPw);
     sessionStorage.setItem('adminSlug', _slug);
     location.href = `/admin.html?slug=${_slug}`;
   }
 
+  /* ── Email/password login ── */
   async function doLogin() {
     const btn   = document.getElementById('l-btn');
     const err   = document.getElementById('l-error');
@@ -395,6 +507,22 @@
     } catch { err.textContent = 'שגיאת רשת, נסו שוב'; }
     finally { btn.disabled = false; btn.textContent = 'כניסה לניהול'; }
   }
+
+  /* ── Init Google GSI ── */
+  async function initGoogle() {
+    const cfg = await fetch(`${API}/config`).then(r => r.json()).catch(() => ({}));
+    if (!cfg.googleClientId) {
+      document.getElementById('google-register-wrap').style.display = 'none';
+      document.getElementById('google-login-wrap').style.display    = 'none';
+      return;
+    }
+    window.google?.accounts.id.initialize({
+      client_id: cfg.googleClientId,
+      callback:  handleGoogleCredential,
+      ux_mode:   'popup'
+    });
+  }
+  window.addEventListener('load', initGoogle);
 </script>
 </body>
 </html>

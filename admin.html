@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ניהול אישורי הגעה</title>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -95,6 +96,28 @@
     .login-links { margin-top: 16px; display: flex; justify-content: center; gap: 20px; font-size: 12px; }
     .login-links a { color: rgba(255,255,255,.4); text-decoration: none; transition: color .15s; }
     .login-links a:hover { color: var(--gold-light); }
+    .google-btn {
+      width: 100%; height: 46px; border-radius: 12px; margin-bottom: 16px;
+      border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 600; color: white;
+      cursor: pointer; transition: background .15s;
+    }
+    .google-btn:hover { background: rgba(255,255,255,.13); }
+    .divider { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,.1); }
+    .divider-text { font-size: 11px; color: rgba(255,255,255,.3); white-space: nowrap; }
+    .wa-template-wrap textarea.settings-input {
+      height: auto; padding: 10px 14px; resize: vertical; min-height: 80px; line-height: 1.5;
+    }
+    .wa-hint { font-size: 11px; color: #aaa; margin-top: 5px; line-height: 1.6; }
+    .wa-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: none;
+      background: #25d366; color: white; cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity .15s; flex-shrink: 0;
+    }
+    .wa-btn:hover { opacity: .85; }
 
     /* ─── Dashboard ─── */
     #dashboard { display: none; min-height: 100vh; background: #f0f2f7; }
@@ -340,6 +363,14 @@
       <div class="login-slug" id="loginSlugLabel"></div>
     </div>
 
+    <button class="google-btn" id="googleLoginBtn" onclick="startGoogle()" style="display:none">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      כניסה עם Google
+    </button>
+    <div class="divider" id="loginDivider" style="display:none">
+      <div class="divider-line"></div><div class="divider-text">או עם סיסמה</div><div class="divider-line"></div>
+    </div>
+
     <div class="pw-wrap">
       <input type="password" id="pwInput" class="login-input" placeholder="הזינו סיסמת ניהול"
         onkeydown="if(event.key==='Enter') doLogin()" />
@@ -445,12 +476,11 @@
                 <input type="text" class="settings-input" id="s-family" placeholder="משפחת ישראלי" />
               </div>
 
-              <div class="field-group">
-                <div class="field-label">קוד CallMeBot לWhatsApp <span style="font-weight:400;color:#bbb;font-size:10px">— לקבלת התראות על אישורים</span></div>
-                <input type="text" class="settings-input" id="s-wakey" dir="ltr" placeholder="1234567" />
-                <div style="margin-top:6px;font-size:11.5px;color:#aaa;line-height:1.5">
-                  לקבלת קוד: שלח הודעה בוואטסאפ ל‎<span dir="ltr" style="font-family:monospace;color:#555">+34 644 59 29 50</span>
-                  עם הטקסט <span style="font-family:monospace;color:#555">I allow callmebot to send me messages</span>
+              <div class="field-group wa-template-wrap">
+                <div class="field-label">הודעת WhatsApp לאורחים</div>
+                <textarea class="settings-input" id="s-watemplate" placeholder="שלום {שם}! 🎉&#10;נשמח לראותכם באירוע {אירוע}.&#10;תודה על האישור!"></textarea>
+                <div class="wa-hint">
+                  משתנים זמינים: <strong>{שם}</strong> שם פרטי &nbsp;·&nbsp; <strong>{שם_מלא}</strong> שם מלא &nbsp;·&nbsp; <strong>{אורחים}</strong> מספר אורחים &nbsp;·&nbsp; <strong>{אירוע}</strong> שם האירוע &nbsp;·&nbsp; <strong>{תאריך}</strong> תאריך
                 </div>
               </div>
 
@@ -546,9 +576,13 @@
   const eventUrl = `${location.origin}/index.html?slug=${slug}`;
   document.getElementById('eventLinkUrl').textContent   = eventUrl;
 
-  let adminPw = sessionStorage.getItem('adminPw') || '';
-  let allData = [];
-  let filter  = 'all';
+  let adminPw    = sessionStorage.getItem('adminPw')    || '';
+  let adminToken = sessionStorage.getItem('adminToken') || '';
+  let allData    = [];
+  let filter     = 'all';
+  let waTemplate = '';
+  let eventTitle = '';
+  let eventDate  = '';
 
   /* ── Show/hide password ── */
   function togglePw(inputId, eyeId) {
@@ -564,7 +598,10 @@
   }
 
   /* ── Auth ── */
-  window.addEventListener('load', () => { adminPw ? tryAutoLogin() : showLogin(); });
+  window.addEventListener('load', () => {
+    initGoogle();
+    (adminPw || adminToken) ? tryAutoLogin() : showLogin();
+  });
 
   function showLogin() {
     document.getElementById('loginScreen').style.display = 'flex';
@@ -604,14 +641,68 @@
   }
 
   function logout() {
-    adminPw = '';
+    adminPw = ''; adminToken = '';
     sessionStorage.removeItem('adminPw');
+    sessionStorage.removeItem('adminToken');
     sessionStorage.removeItem('adminSlug');
     document.getElementById('pwInput').value = '';
     showLogin();
   }
 
-  function authHeaders() { return { 'X-Admin-Password': adminPw }; }
+  function authHeaders() {
+    const h = {};
+    if (adminPw)    h['X-Admin-Password'] = adminPw;
+    if (adminToken) h['X-Admin-Token']    = adminToken;
+    return h;
+  }
+
+  /* ── Google OAuth ── */
+  async function initGoogle() {
+    const cfg = await fetch('/api/config').then(r => r.json()).catch(() => ({}));
+    if (!cfg.googleClientId) return;
+    document.getElementById('googleLoginBtn').style.display  = 'flex';
+    document.getElementById('loginDivider').style.display    = 'flex';
+    window.google?.accounts.id.initialize({
+      client_id: cfg.googleClientId,
+      callback:  handleGoogleCredential,
+      ux_mode:   'popup'
+    });
+  }
+
+  async function handleGoogleCredential(response) {
+    try {
+      const res  = await fetch('/api/auth/google', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential })
+      });
+      if (!res.ok) { document.getElementById('loginError').textContent = 'שגיאה בהתחברות עם Google'; return; }
+      const data = await res.json();
+      if (data.status === 'login') {
+        adminToken = data.adminToken;
+        sessionStorage.setItem('adminToken', adminToken);
+        sessionStorage.setItem('adminSlug',  data.slug);
+        await loadStats();
+        showDashboard();
+      } else {
+        document.getElementById('loginError').textContent = 'חשבון Google זה אינו רשום במערכת. אנא הירשמו תחילה.';
+      }
+    } catch { document.getElementById('loginError').textContent = 'שגיאת רשת'; }
+  }
+
+  function startGoogle() { window.google?.accounts.id.prompt(); }
+
+  /* ── WhatsApp link builder ── */
+  function buildWaLink(entry) {
+    const tmpl = waTemplate || 'שלום {שם}! 🎉\nנשמח לראותכם באירוע.';
+    const msg  = tmpl
+      .replace(/{שם}/g,     entry.firstName)
+      .replace(/{שם_מלא}/g, `${entry.firstName} ${entry.lastName}`)
+      .replace(/{אורחים}/g, entry.guests)
+      .replace(/{אירוע}/g,  eventTitle)
+      .replace(/{תאריך}/g,  eventDate);
+    const phone = entry.phone.replace(/\D/g, '').replace(/^0/, '972');
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  }
 
   /* ── Event link ── */
   function copyEventLink() { navigator.clipboard.writeText(eventUrl).catch(() => {}); }
@@ -650,8 +741,11 @@
       document.getElementById('s-date').value     = s.eventDate   || '';
       document.getElementById('s-phone').value    = s.phoneNumber || '';
       document.getElementById('s-location').value = s.location    || '';
-      document.getElementById('s-family').value   = s.familyText  || '';
-      document.getElementById('s-wakey').value    = s.whatsAppApiKey || '';
+      document.getElementById('s-family').value      = s.familyText      || '';
+      document.getElementById('s-watemplate').value  = s.whatsAppTemplate || '';
+      waTemplate = s.whatsAppTemplate || '';
+      eventTitle = s.eventTitle       || '';
+      eventDate  = s.eventDate        || '';
       document.getElementById('s-color-confirm').value = s.confirmColor || '#3a6b47';
       document.getElementById('s-color-decline').value = s.declineColor || '#b0b8c4';
       updateColorPreviews();
@@ -682,10 +776,10 @@
         eventDate:    document.getElementById('s-date').value.trim(),
         phoneNumber:  document.getElementById('s-phone').value.trim(),
         location:     document.getElementById('s-location').value.trim(),
-        familyText:      document.getElementById('s-family').value.trim(),
-        confirmColor:    document.getElementById('s-color-confirm').value,
-        declineColor:    document.getElementById('s-color-decline').value,
-        whatsAppApiKey:  document.getElementById('s-wakey').value.trim(),
+        familyText:       document.getElementById('s-family').value.trim(),
+        confirmColor:     document.getElementById('s-color-confirm').value,
+        declineColor:     document.getElementById('s-color-decline').value,
+        whatsAppTemplate: document.getElementById('s-watemplate').value.trim(),
       };
       const res = await fetch(SETTINGS_API, {
         method: 'PUT',
@@ -694,6 +788,9 @@
       });
       if (res.status === 401) { logout(); return; }
       if (!res.ok) throw new Error('שגיאה בשמירה');
+      waTemplate = document.getElementById('s-watemplate').value.trim();
+      eventTitle = document.getElementById('s-title').value.trim();
+      eventDate  = document.getElementById('s-date').value.trim();
       status.textContent = '✓ נשמר בהצלחה';
       status.className = 'save-status ok';
     } catch (e) {
@@ -781,7 +878,12 @@
         <td>${e.attending ? `<span class="guest-count">${e.guests}</span>` : '<span style="color:#ccc">—</span>'}</td>
         <td><span class="badge ${e.attending ? 'badge-yes':'badge-no'}">${e.attending ? '✔ מגיע':'✘ לא מגיע'}</span></td>
         <td style="color:#aaa;font-size:12px">${new Date(e.createdAt).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
-        <td><button class="del-btn" onclick="deleteEntry(${e.id})" title="מחק">🗑</button></td>
+        <td style="display:flex;gap:6px;align-items:center">
+          ${e.attending ? `<a class="wa-btn" href="${buildWaLink(e)}" target="_blank" title="שלח WhatsApp">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.122 1.526 5.858L0 24l6.335-1.502A11.954 11.954 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.808 9.808 0 0 1-5.034-1.388l-.361-.214-3.741.887.939-3.618-.235-.372A9.808 9.808 0 0 1 2.182 12C2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/></svg>
+          </a>` : ''}
+          <button class="del-btn" onclick="deleteEntry(${e.id})" title="מחק">🗑</button>
+        </td>
       </tr>`).join('');
     container.innerHTML = `<table><thead><tr><th>#</th><th>שם</th><th>טלפון</th><th>אורחים</th><th>סטטוס</th><th>זמן</th><th></th></tr></thead><tbody>${html}</tbody></table>`;
   }

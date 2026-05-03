@@ -6,13 +6,14 @@ public record RegisterRequest(
     string Slug,
     string PhoneNumber,
     string EventTitle,
-    string EventDate,
-    string? WhatsAppApiKey
+    string EventDate
 );
 
 public record RegisterResponse(string Slug, string RecoveryCode);
 
 public record LoginRequest(string Email, string Password);
+
+public record GoogleAuthRequest(string Credential);
 
 public record ResetPasswordRequest(string Email, string RecoveryCode, string NewPassword);
 
@@ -55,7 +56,8 @@ public record SettingsPublicDto(
     string EventDate,
     string ConfirmColor,
     string DeclineColor,
-    bool   HasImage
+    bool   HasImage,
+    string WhatsAppTemplate
 );
 
 public record SettingsUpdateDto(
@@ -66,5 +68,5 @@ public record SettingsUpdateDto(
     string? EventDate,
     string? ConfirmColor,
     string? DeclineColor,
-    string? WhatsAppApiKey
+    string? WhatsAppTemplate
 );
