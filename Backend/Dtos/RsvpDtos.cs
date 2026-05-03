@@ -4,6 +4,7 @@ public record RegisterRequest(
     string Email,
     string Password,
     string Slug,
+    string PhoneNumber,
     string EventTitle,
     string EventDate
 );
@@ -13,6 +14,12 @@ public record RegisterResponse(string Slug, string RecoveryCode);
 public record LoginRequest(string Email, string Password);
 
 public record ResetPasswordRequest(string Email, string RecoveryCode, string NewPassword);
+
+public record ForgotEmailRequest(string Email);
+public record ResetEmailRequest(string Email, string Token, string NewPassword);
+
+public record ForgotSmsRequest(string Email);
+public record ResetSmsRequest(string Email, string Code, string NewPassword);
 
 public record SubmitRsvpRequest(
     string FirstName,

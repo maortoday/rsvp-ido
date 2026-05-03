@@ -8,84 +8,112 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --gold: #c9943a; --gold-light: #e8c06a;
-      --navy: #1a2a4a; --navy-mid: #2d4270;
-      --green: #2e7d32; --red: #c62828;
-      --cream: #fdfaf4; --border: #e4e9f2;
+      --gold: #c9943a; --gold-light: #e8c06a; --gold-pale: #fef3c7;
+      --navy: #0d1b33; --navy-mid: #1a2f52;
+      --green: #27ae60; --red: #e74c3c; --border: #e2e8f0; --cream: #fdfaf4;
     }
     body {
       font-family: 'Heebo', sans-serif; min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(160deg, #0e1a32 0%, #1a2a4a 100%);
-      padding: 20px;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      background: radial-gradient(ellipse at 20% 10%, #243d6a 0%, #0d1b33 50%, #060e1f 100%);
+    }
+    body::before {
+      content: ''; position: fixed; width: 500px; height: 500px;
+      top: -150px; right: -100px; border-radius: 50%; pointer-events: none;
+      background: radial-gradient(circle, #c9943a, transparent);
+      filter: blur(80px); opacity: .2;
     }
     .card {
-      background: var(--cream); border-radius: 24px;
-      width: 100%; max-width: 400px;
-      box-shadow: 0 24px 80px rgba(0,0,0,.55);
-      border: 1px solid rgba(201,148,58,.2); overflow: hidden;
+      background: rgba(255,255,255,.97); border-radius: 28px;
+      width: 100%; max-width: 440px; overflow: hidden; position: relative; z-index: 1;
+      box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.1);
     }
     .card-header {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
-      padding: 28px 24px; text-align: center;
+      background: linear-gradient(145deg, var(--navy) 0%, var(--navy-mid) 100%);
+      padding: 30px 28px 24px; text-align: center; position: relative;
+    }
+    .card-header::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
     }
     .header-icon {
-      width: 60px; height: 60px; border-radius: 50%;
+      width: 60px; height: 60px; border-radius: 18px;
       background: linear-gradient(135deg, #fdf3dc, #fce8b0);
       display: flex; align-items: center; justify-content: center;
-      font-size: 28px; margin: 0 auto 12px;
-      box-shadow: 0 4px 16px rgba(201,148,58,.35);
+      font-size: 26px; margin: 0 auto 12px; box-shadow: 0 6px 20px rgba(201,148,58,.35);
     }
-    .header-title {
-      font-family: 'Frank Ruhl Libre', serif;
-      font-size: 20px; font-weight: 900; color: var(--gold-light);
-    }
-    .header-sub { font-size: 12px; color: rgba(255,255,255,.5); margin-top: 4px; }
+    .header-title { font-family: 'Frank Ruhl Libre', serif; font-size: 20px; font-weight: 900; color: white; }
+    .header-sub   { font-size: 12px; color: rgba(255,255,255,.4); margin-top: 4px; }
 
-    .body { padding: 28px 24px; }
-    .step { display: none; }
-    .step.active { display: block; }
+    /* Method tabs */
+    .method-tabs { display: flex; background: white; border-bottom: 2px solid var(--border); }
+    .method-tab {
+      flex: 1; padding: 13px 6px; text-align: center; font-size: 13px; font-weight: 700;
+      color: #94a3b8; cursor: pointer; border-bottom: 3px solid transparent;
+      margin-bottom: -2px; transition: color .15s, border-color .15s;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .method-tab.active { color: var(--navy); border-bottom-color: var(--gold); }
 
-    .field-group { margin-bottom: 16px; }
-    .field-label {
-      font-size: 11px; font-weight: 700; color: #888;
-      letter-spacing: .06em; margin-bottom: 5px; display: block;
+    .panel { display: none; padding: 26px 28px; }
+    .panel.active { display: block; }
+
+    .field { margin-bottom: 15px; }
+    .field-label { font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: .07em; margin-bottom: 6px; display: block; }
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+      color: #94a3b8; pointer-events: none; display: flex;
     }
-    .input {
-      width: 100%; height: 48px;
-      border: 1.8px solid var(--border); border-radius: 12px;
-      padding: 0 14px; font-family: 'Heebo', sans-serif; font-size: 15px;
-      background: white; color: #1e1e1e; outline: none;
-      transition: border-color .2s, box-shadow .2s;
+    .field-input {
+      width: 100%; height: 48px; border: 1.8px solid var(--border); border-radius: 12px;
+      padding: 0 40px 0 14px; font-family: 'Heebo', sans-serif; font-size: 15px;
+      background: #f8fafc; color: #0f172a; outline: none;
+      transition: border-color .2s, background .2s, box-shadow .2s;
     }
-    .input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,148,58,.12); }
-    .recovery-input { letter-spacing: 4px; font-family: monospace; font-size: 18px; font-weight: 700; text-align: center; direction: ltr; }
-    .input-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+    .field-input:focus { border-color: var(--gold); background: white; box-shadow: 0 0 0 3px rgba(201,148,58,.1); }
+    .field-input[dir="ltr"] { padding-right: 14px; padding-left: 40px; text-align: left; }
+    .field-hint { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+    .code-input {
+      text-align: center; letter-spacing: 6px; font-family: monospace;
+      font-size: 20px; font-weight: 700; padding: 0 14px;
+    }
+    .eye-btn {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: #94a3b8;
+      display: flex; align-items: center; transition: color .15s; padding: 4px;
+    }
+    .eye-btn:hover { color: #475569; }
 
     .btn-primary {
-      width: 100%; height: 50px; border-radius: 12px; border: none;
+      width: 100%; height: 52px; border-radius: 14px; border: none; margin-top: 4px;
       background: linear-gradient(135deg, var(--gold) 0%, #a07020 100%);
-      color: white; font-family: 'Heebo', sans-serif;
-      font-size: 16px; font-weight: 700; cursor: pointer;
-      box-shadow: 0 4px 16px rgba(201,148,58,.35);
-      transition: opacity .15s, transform .1s; margin-top: 4px;
+      color: white; font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 700;
+      cursor: pointer; box-shadow: 0 6px 20px rgba(201,148,58,.3); transition: opacity .15s, transform .1s;
     }
     .btn-primary:hover { opacity: .92; transform: translateY(-1px); }
     .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
+    .info-box {
+      background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;
+      padding: 11px 14px; font-size: 12.5px; color: #0369a1; margin-bottom: 16px; line-height: 1.5;
+    }
+    .success-box {
+      background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px;
+      padding: 11px 14px; font-size: 12.5px; color: #166534; margin-bottom: 14px; display: none;
+    }
     .error-msg { font-size: 12.5px; color: var(--red); text-align: center; min-height: 20px; margin: 6px 0 2px; }
 
-    .success-screen { text-align: center; padding: 16px 0; }
-    .success-icon { font-size: 52px; margin-bottom: 16px; }
-    .success-title {
-      font-family: 'Frank Ruhl Libre', serif;
-      font-size: 20px; font-weight: 900; color: var(--navy); margin-bottom: 8px;
-    }
-    .success-msg { font-size: 13px; color: #666; line-height: 1.7; margin-bottom: 20px; }
+    /* Success screen */
+    .success-screen { text-align: center; padding: 12px 0; }
+    .success-icon  { font-size: 52px; margin-bottom: 14px; }
+    .success-title { font-family: 'Frank Ruhl Libre', serif; font-size: 20px; font-weight: 900; color: var(--navy); margin-bottom: 8px; }
+    .success-msg   { font-size: 13px; color: #64748b; line-height: 1.7; margin-bottom: 22px; }
 
-    .footer { padding: 14px 24px; border-top: 1px solid var(--border); text-align: center; font-size: 12.5px; color: #999; }
-    .footer a { color: var(--navy-mid); font-weight: 600; text-decoration: none; }
-    .footer a:hover { text-decoration: underline; }
+    .card-footer { padding: 14px 28px 20px; border-top: 1px solid var(--border); text-align: center; font-size: 13px; color: #94a3b8; }
+    .card-footer a { color: var(--navy-mid); font-weight: 600; text-decoration: none; }
+    .card-footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -93,81 +121,304 @@
   <div class="card-header">
     <div class="header-icon">🔑</div>
     <div class="header-title">שחזור סיסמה</div>
-    <div class="header-sub">השתמשו בקוד השחזור שקיבלתם בהרשמה</div>
+    <div class="header-sub">בחרו את שיטת השחזור המועדפת</div>
   </div>
 
-  <div class="body">
+  <div class="method-tabs">
+    <div class="method-tab active" id="tab-email"    onclick="switchTab('email')">📧 מייל</div>
+    <div class="method-tab"        id="tab-sms"      onclick="switchTab('sms')">📱 SMS</div>
+    <div class="method-tab"        id="tab-recovery" onclick="switchTab('recovery')">🔑 קוד שחזור</div>
+  </div>
 
-    <!-- Step 1: email + recovery code + new password -->
-    <div class="step active" id="step1">
-      <div class="field-group">
+  <!-- Email reset -->
+  <div class="panel active" id="panel-email">
+    <div class="info-box">📧 נשלח אליכם קישור לאיפוס סיסמה למייל הרשום.</div>
+    <div id="email-step1">
+      <div class="field">
         <label class="field-label">כתובת מייל</label>
-        <input class="input" type="email" id="f-email" placeholder="you@example.com" dir="ltr" />
+        <div class="input-wrap">
+          <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+          <input class="field-input" type="email" id="e-email" placeholder="you@example.com" dir="ltr" />
+        </div>
       </div>
-      <div class="field-group">
-        <label class="field-label">קוד שחזור</label>
-        <input class="input recovery-input" type="text" id="f-code" placeholder="A1B2C3D4E5F6"
-          maxlength="12" oninput="this.value = this.value.toUpperCase()" />
-        <div class="input-hint">12 תווים — הקוד שהוצג לכם בעת ההרשמה</div>
-      </div>
-      <div class="field-group">
-        <label class="field-label">סיסמה חדשה</label>
-        <input class="input" type="password" id="f-pass" placeholder="לפחות 6 תווים" />
-      </div>
-      <div class="field-group">
-        <label class="field-label">אימות סיסמה חדשה</label>
-        <input class="input" type="password" id="f-pass2" placeholder="חזרו על הסיסמה" />
-      </div>
-      <div class="error-msg" id="f-error"></div>
-      <button class="btn-primary" id="f-btn" onclick="doReset()">אפס סיסמה</button>
+      <div class="error-msg" id="e-error"></div>
+      <button class="btn-primary" id="e-btn" onclick="sendEmailReset()">שלח קישור איפוס</button>
     </div>
-
-    <!-- Step 2: success -->
-    <div class="step" id="step2">
-      <div class="success-screen">
-        <div class="success-icon">✅</div>
-        <div class="success-title">הסיסמה עודכנה!</div>
-        <div class="success-msg">הסיסמה שלכם שונתה בהצלחה.<br/>תוכלו להתחבר כעת עם הסיסמה החדשה.</div>
-        <button class="btn-primary" onclick="window.location.href='/register.html'">כניסה למערכת</button>
+    <div id="email-step2" style="display:none">
+      <div class="success-box" id="email-sent-msg" style="display:block">✅ אם המייל קיים במערכת, נשלח אליו קישור לאיפוס. בדקו את תיבת הדואר (ותיקיית הספאם).</div>
+      <div class="field">
+        <label class="field-label">הזינו את הקישור שקיבלתם — או המתינו לדואר</label>
       </div>
     </div>
-
   </div>
 
-  <div class="footer"><a href="/register.html">← חזרה לדף הכניסה</a></div>
+  <!-- Email confirm step (when arriving via ?method=email) -->
+  <div class="panel" id="panel-email-confirm">
+    <div class="info-box">✉️ קלטנו את הקישור. הזינו סיסמה חדשה:</div>
+    <div class="field">
+      <label class="field-label">סיסמה חדשה</label>
+      <div class="input-wrap">
+        <input class="field-input" type="password" id="ec-pass" placeholder="לפחות 6 תווים" />
+        <button type="button" class="eye-btn" onclick="togglePw('ec-pass',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">אימות סיסמה</label>
+      <div class="input-wrap">
+        <input class="field-input" type="password" id="ec-pass2" placeholder="חזרו על הסיסמה" />
+        <button type="button" class="eye-btn" onclick="togglePw('ec-pass2',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="error-msg" id="ec-error"></div>
+    <button class="btn-primary" id="ec-btn" onclick="confirmEmailReset()">עדכן סיסמה</button>
+  </div>
+
+  <!-- SMS reset -->
+  <div class="panel" id="panel-sms">
+    <div class="info-box">📱 נשלח קוד חד-פעמי (6 ספרות) למספר הטלפון שרשמתם בהרשמה.</div>
+    <div id="sms-step1">
+      <div class="field">
+        <label class="field-label">כתובת מייל (לאיתור החשבון)</label>
+        <div class="input-wrap">
+          <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+          <input class="field-input" type="email" id="s-email" placeholder="you@example.com" dir="ltr" />
+        </div>
+      </div>
+      <div class="error-msg" id="s-send-error"></div>
+      <button class="btn-primary" id="s-send-btn" onclick="sendSmsReset()">שלח קוד SMS</button>
+    </div>
+    <div id="sms-step2" style="display:none">
+      <div class="success-box" id="sms-sent-msg" style="display:block">✅ נשלח קוד SMS. הקוד תקף ל-10 דקות.</div>
+      <div class="field">
+        <label class="field-label">קוד SMS (6 ספרות)</label>
+        <div class="input-wrap">
+          <input class="field-input code-input" type="text" id="s-code" placeholder="000000" maxlength="6" dir="ltr" oninput="this.value=this.value.replace(/\D/g,'')" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">סיסמה חדשה</label>
+        <div class="input-wrap">
+          <input class="field-input" type="password" id="s-pass" placeholder="לפחות 6 תווים" />
+          <button type="button" class="eye-btn" onclick="togglePw('s-pass',this)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">אימות סיסמה</label>
+        <div class="input-wrap">
+          <input class="field-input" type="password" id="s-pass2" placeholder="חזרו על הסיסמה" />
+          <button type="button" class="eye-btn" onclick="togglePw('s-pass2',this)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="error-msg" id="s-confirm-error"></div>
+      <button class="btn-primary" id="s-confirm-btn" onclick="confirmSmsReset()">עדכן סיסמה</button>
+    </div>
+  </div>
+
+  <!-- Recovery code reset -->
+  <div class="panel" id="panel-recovery">
+    <div class="info-box">🔑 השתמשו בקוד השחזור שקיבלתם בעת ההרשמה.</div>
+    <div class="field">
+      <label class="field-label">כתובת מייל</label>
+      <div class="input-wrap">
+        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        <input class="field-input" type="email" id="rc-email" placeholder="you@example.com" dir="ltr" />
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">קוד שחזור</label>
+      <input class="field-input code-input" type="text" id="rc-code" placeholder="A1B2C3D4E5F6"
+        maxlength="12" oninput="this.value=this.value.toUpperCase()" dir="ltr" />
+      <div class="field-hint">12 תווים שקיבלתם בעת ההרשמה</div>
+    </div>
+    <div class="field">
+      <label class="field-label">סיסמה חדשה</label>
+      <div class="input-wrap">
+        <input class="field-input" type="password" id="rc-pass" placeholder="לפחות 6 תווים" />
+        <button type="button" class="eye-btn" onclick="togglePw('rc-pass',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">אימות סיסמה</label>
+      <div class="input-wrap">
+        <input class="field-input" type="password" id="rc-pass2" placeholder="חזרו על הסיסמה" />
+        <button type="button" class="eye-btn" onclick="togglePw('rc-pass2',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="error-msg" id="rc-error"></div>
+    <button class="btn-primary" id="rc-btn" onclick="doRecoveryReset()">עדכן סיסמה</button>
+  </div>
+
+  <!-- Success screen -->
+  <div class="panel" id="panel-success">
+    <div class="success-screen">
+      <div class="success-icon">✅</div>
+      <div class="success-title">הסיסמה עודכנה בהצלחה!</div>
+      <div class="success-msg">תוכלו להתחבר עכשיו עם הסיסמה החדשה.</div>
+      <button class="btn-primary" onclick="location.href='/register.html'">כניסה למערכת</button>
+    </div>
+  </div>
+
+  <div class="card-footer"><a href="/register.html">← חזרה לדף הכניסה</a></div>
 </div>
 
 <script>
   const API = window.location.hostname === 'localhost' ? 'http://localhost:5050/api' : '/api';
 
-  async function doReset() {
-    const btn   = document.getElementById('f-btn');
-    const err   = document.getElementById('f-error');
-    const email = document.getElementById('f-email').value.trim();
-    const code  = document.getElementById('f-code').value.trim().toUpperCase();
-    const pass  = document.getElementById('f-pass').value;
-    const pass2 = document.getElementById('f-pass2').value;
+  const EYE_OPEN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_SHUT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
 
+  function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    const show = inp.type === 'text';
+    inp.type = show ? 'password' : 'text';
+    btn.innerHTML = show ? EYE_OPEN : EYE_SHUT;
+  }
+
+  // Check URL params for email reset link
+  window.addEventListener('load', () => {
+    const p = new URLSearchParams(location.search);
+    if (p.get('method') === 'email' && p.get('token') && p.get('email')) {
+      // Hide all panels and tabs, show email confirm
+      document.querySelectorAll('.method-tab').forEach(t => t.style.display = 'none');
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-email-confirm').classList.add('active');
+      document.getElementById('panel-email-confirm')._email = p.get('email');
+      document.getElementById('panel-email-confirm')._token = p.get('token');
+    }
+  });
+
+  function switchTab(t) {
+    ['email','sms','recovery'].forEach(k => {
+      document.getElementById('tab-'+k)?.classList.toggle('active', k === t);
+      const panel = document.getElementById('panel-'+k);
+      if (panel) panel.classList.toggle('active', k === t);
+    });
+    document.getElementById('panel-email-confirm')?.classList.remove('active');
+    document.getElementById('panel-success')?.classList.remove('active');
+  }
+
+  function showSuccess() {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-success').classList.add('active');
+  }
+
+  /* ── Email reset ── */
+  async function sendEmailReset() {
+    const btn = document.getElementById('e-btn');
+    const err = document.getElementById('e-error');
+    const email = document.getElementById('e-email').value.trim();
+    err.textContent = '';
+    if (!email) { err.textContent = 'הזינו כתובת מייל'; return; }
+    btn.disabled = true; btn.textContent = 'שולח...';
+    try {
+      await fetch(`${API}/auth/forgot-email`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      document.getElementById('email-step1').style.display = 'none';
+      document.getElementById('email-step2').style.display = 'block';
+    } catch { err.textContent = 'שגיאת רשת'; }
+    finally { btn.disabled = false; btn.textContent = 'שלח קישור איפוס'; }
+  }
+
+  async function confirmEmailReset() {
+    const btn   = document.getElementById('ec-btn');
+    const err   = document.getElementById('ec-error');
+    const panel = document.getElementById('panel-email-confirm');
+    const email = panel._email;
+    const token = panel._token;
+    const pass  = document.getElementById('ec-pass').value;
+    const pass2 = document.getElementById('ec-pass2').value;
+    err.textContent = '';
+    if (pass !== pass2) { err.textContent = 'הסיסמאות אינן תואמות'; return; }
+    btn.disabled = true; btn.textContent = 'מעדכן...';
+    try {
+      const res  = await fetch(`${API}/auth/reset-email`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token, newPassword: pass })
+      });
+      const data = await res.json();
+      if (!res.ok) { err.textContent = data.error || 'שגיאה'; return; }
+      showSuccess();
+    } catch { err.textContent = 'שגיאת רשת'; }
+    finally { btn.disabled = false; btn.textContent = 'עדכן סיסמה'; }
+  }
+
+  /* ── SMS reset ── */
+  let _smsEmail = '';
+  async function sendSmsReset() {
+    const btn = document.getElementById('s-send-btn');
+    const err = document.getElementById('s-send-error');
+    _smsEmail = document.getElementById('s-email').value.trim();
+    err.textContent = '';
+    if (!_smsEmail) { err.textContent = 'הזינו כתובת מייל'; return; }
+    btn.disabled = true; btn.textContent = 'שולח SMS...';
+    try {
+      await fetch(`${API}/auth/forgot-sms`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: _smsEmail })
+      });
+      document.getElementById('sms-step1').style.display = 'none';
+      document.getElementById('sms-step2').style.display = 'block';
+    } catch { err.textContent = 'שגיאת רשת'; }
+    finally { btn.disabled = false; btn.textContent = 'שלח קוד SMS'; }
+  }
+
+  async function confirmSmsReset() {
+    const btn  = document.getElementById('s-confirm-btn');
+    const err  = document.getElementById('s-confirm-error');
+    const code = document.getElementById('s-code').value.trim();
+    const pass = document.getElementById('s-pass').value;
+    const pass2= document.getElementById('s-pass2').value;
+    err.textContent = '';
+    if (pass !== pass2) { err.textContent = 'הסיסמאות אינן תואמות'; return; }
+    btn.disabled = true; btn.textContent = 'מעדכן...';
+    try {
+      const res  = await fetch(`${API}/auth/reset-sms`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: _smsEmail, code, newPassword: pass })
+      });
+      const data = await res.json();
+      if (!res.ok) { err.textContent = data.error || 'שגיאה'; return; }
+      showSuccess();
+    } catch { err.textContent = 'שגיאת רשת'; }
+    finally { btn.disabled = false; btn.textContent = 'עדכן סיסמה'; }
+  }
+
+  /* ── Recovery code reset ── */
+  async function doRecoveryReset() {
+    const btn   = document.getElementById('rc-btn');
+    const err   = document.getElementById('rc-error');
+    const email = document.getElementById('rc-email').value.trim();
+    const code  = document.getElementById('rc-code').value.trim().toUpperCase();
+    const pass  = document.getElementById('rc-pass').value;
+    const pass2 = document.getElementById('rc-pass2').value;
     err.textContent = '';
     if (pass !== pass2) { err.textContent = 'הסיסמאות אינן תואמות'; return; }
     if (code.length !== 12) { err.textContent = 'קוד השחזור חייב להיות 12 תווים'; return; }
-
     btn.disabled = true; btn.textContent = 'מעדכן...';
     try {
-      const res = await fetch(`${API}/auth/reset`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res  = await fetch(`${API}/auth/reset`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, recoveryCode: code, newPassword: pass })
       });
       const data = await res.json();
-      if (!res.ok) { err.textContent = data.error || 'שגיאה באיפוס הסיסמה'; return; }
-      document.getElementById('step1').classList.remove('active');
-      document.getElementById('step2').classList.add('active');
-    } catch {
-      err.textContent = 'שגיאת רשת, נסו שוב';
-    } finally {
-      btn.disabled = false; btn.textContent = 'אפס סיסמה';
-    }
+      if (!res.ok) { err.textContent = data.error || 'שגיאה'; return; }
+      showSuccess();
+    } catch { err.textContent = 'שגיאת רשת'; }
+    finally { btn.disabled = false; btn.textContent = 'עדכן סיסמה'; }
   }
 </script>
 </body>

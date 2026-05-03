@@ -19,73 +19,140 @@
       --cream:      #fdfaf4;
       --border:     #e4e9f2;
     }
-    body { font-family: 'Heebo', sans-serif; background: #f0f2f7; color: #1e1e1e; min-height: 100vh; }
+    body { font-family: 'Heebo', sans-serif; background: #0c1628; color: #1e1e1e; min-height: 100vh; }
 
     /* ─── Login ─── */
     #loginScreen {
       min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(160deg, #0e1a32 0%, #1a2a4a 100%); padding: 20px;
+      background: radial-gradient(ellipse at 30% 40%, rgba(45,66,112,.6) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 70%, rgba(201,148,58,.15) 0%, transparent 50%),
+                  linear-gradient(160deg, #0c1628 0%, #1a2a4a 100%);
+      padding: 20px; position: relative; overflow: hidden;
+    }
+    #loginScreen::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(circle at 20% 80%, rgba(201,148,58,.08) 0%, transparent 40%),
+                  radial-gradient(circle at 85% 15%, rgba(45,66,112,.5) 0%, transparent 40%);
     }
     .login-box {
-      background: var(--cream); border-radius: 24px; padding: 44px 40px;
-      max-width: 380px; width: 100%; text-align: center;
-      box-shadow: 0 24px 80px rgba(0,0,0,.5); border: 1px solid rgba(201,148,58,.2);
+      background: rgba(255,255,255,.04); backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 28px; padding: 48px 40px; max-width: 400px; width: 100%;
+      text-align: center; position: relative; z-index: 1;
+      box-shadow: 0 32px 80px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.1);
+    }
+    .login-header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      margin: -48px -40px 32px; padding: 28px 40px;
+      border-radius: 28px 28px 0 0; border-bottom: 1px solid rgba(201,148,58,.2);
     }
     .login-logo {
-      width: 70px; height: 70px; border-radius: 50%;
-      background: linear-gradient(135deg, #fdf3dc, #fce8b0);
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(201,148,58,.2), rgba(201,148,58,.1));
+      border: 2px solid rgba(201,148,58,.4);
       display: flex; align-items: center; justify-content: center;
-      font-size: 32px; margin: 0 auto 20px; box-shadow: 0 4px 16px rgba(201,148,58,.3);
+      font-size: 28px; margin: 0 auto 14px;
+      box-shadow: 0 0 30px rgba(201,148,58,.2);
     }
-    .login-title { font-family: 'Frank Ruhl Libre', serif; font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
-    .login-slug  { font-size: 12px; color: #aaa; margin-bottom: 24px; direction: ltr; }
+    .login-title {
+      font-family: 'Frank Ruhl Libre', serif; font-size: 22px; font-weight: 700;
+      color: var(--gold-light); margin-bottom: 4px;
+    }
+    .login-slug { font-size: 12px; color: rgba(255,255,255,.4); font-family: monospace; }
+
+    .pw-wrap { position: relative; margin-bottom: 4px; }
     .login-input {
-      width: 100%; height: 50px; border: 1.8px solid var(--border); border-radius: 12px;
-      padding: 0 16px; font-family: 'Heebo', sans-serif; font-size: 16px;
-      direction: ltr; text-align: center; outline: none;
-      transition: border-color .2s, box-shadow .2s; background: white; color: #1e1e1e;
+      width: 100%; height: 52px; border: 1.5px solid rgba(255,255,255,.1); border-radius: 14px;
+      padding: 0 48px 0 16px; font-family: 'Heebo', sans-serif; font-size: 15px;
+      direction: ltr; text-align: left; outline: none;
+      background: rgba(255,255,255,.06); color: white;
+      transition: border-color .2s, box-shadow .2s;
     }
+    .login-input::placeholder { color: rgba(255,255,255,.3); }
     .login-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,148,58,.15); }
     .login-input.shake { animation: shake .4s ease; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
-    .login-error { font-size: 12.5px; color: var(--red); min-height: 20px; margin: 8px 0 4px; }
+    .pw-eye {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: rgba(255,255,255,.4);
+      padding: 4px; display: flex; align-items: center; transition: color .15s;
+    }
+    .pw-eye:hover { color: var(--gold-light); }
+    .login-error {
+      font-size: 12.5px; color: #f87171; min-height: 20px;
+      margin: 8px 0 4px; text-align: center;
+    }
     .login-btn {
-      width: 100%; height: 50px; margin-top: 6px;
+      width: 100%; height: 52px; margin-top: 6px;
       background: linear-gradient(135deg, var(--gold) 0%, #a07020 100%);
-      color: white; border: none; border-radius: 12px;
+      color: white; border: none; border-radius: 14px;
       font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 700;
       cursor: pointer; transition: opacity .15s, transform .1s;
-      box-shadow: 0 4px 16px rgba(201,148,58,.35);
+      box-shadow: 0 4px 20px rgba(201,148,58,.4);
+      letter-spacing: .01em;
     }
     .login-btn:hover { opacity: .92; transform: translateY(-1px); }
-    .login-back { margin-top: 14px; font-size: 12px; color: #aaa; }
-    .login-back a { color: var(--navy-mid); font-weight: 600; text-decoration: none; }
+    .login-links { margin-top: 16px; display: flex; justify-content: center; gap: 20px; font-size: 12px; }
+    .login-links a { color: rgba(255,255,255,.4); text-decoration: none; transition: color .15s; }
+    .login-links a:hover { color: var(--gold-light); }
 
     /* ─── Dashboard ─── */
-    #dashboard { display: none; }
+    #dashboard { display: none; min-height: 100vh; background: #f0f2f7; }
+
     .topbar {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
-      padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; flex-wrap: wrap; box-shadow: 0 2px 12px rgba(0,0,0,.25);
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #1e3a6a 100%);
+      padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; height: 64px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.3);
+      border-bottom: 1px solid rgba(201,148,58,.2);
     }
-    .topbar-title { font-family: 'Frank Ruhl Libre', serif; font-size: 20px; font-weight: 700; color: var(--gold-light); display: flex; align-items: center; gap: 10px; }
-    .topbar-slug  { font-size: 12px; color: rgba(255,255,255,.4); font-family: monospace; }
-    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+    .topbar-brand { display: flex; align-items: center; gap: 12px; }
+    .topbar-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(201,148,58,.15); border: 1px solid rgba(201,148,58,.3);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .topbar-title { font-family: 'Frank Ruhl Libre', serif; font-size: 18px; font-weight: 700; color: var(--gold-light); }
+    .topbar-slug  { font-size: 11px; color: rgba(255,255,255,.35); font-family: monospace; margin-top: 2px; }
+    .topbar-actions { display: flex; gap: 8px; align-items: center; }
     .topbar-btn {
-      height: 36px; padding: 0 16px; border-radius: 8px;
-      border: 1.5px solid rgba(201,148,58,.4); background: rgba(201,148,58,.1);
-      color: var(--gold-light); font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 600;
+      height: 34px; padding: 0 14px; border-radius: 8px;
+      border: 1px solid rgba(201,148,58,.3); background: rgba(201,148,58,.1);
+      color: var(--gold-light); font-family: 'Heebo', sans-serif; font-size: 12.5px; font-weight: 600;
       cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 6px;
     }
     .topbar-btn:hover { background: rgba(201,148,58,.2); }
-    .topbar-btn.logout { border-color: rgba(255,100,100,.3); color: #f0a0a0; background: rgba(200,50,50,.1); }
-    .topbar-btn.logout:hover { background: rgba(200,50,50,.2); }
+    .topbar-btn.danger { border-color: rgba(255,100,100,.2); color: #f0a0a0; background: rgba(200,50,50,.08); }
+    .topbar-btn.danger:hover { background: rgba(200,50,50,.18); }
+
+    /* ─── Content wrapper ─── */
+    .content { max-width: 1040px; margin: 0 auto; padding: 0 24px 48px; }
+
+    /* ─── Event link bar ─── */
+    .event-link-bar { padding: 18px 0 0; }
+    .event-link-inner {
+      background: white; border-radius: 14px; border: 1px solid var(--border);
+      padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+    .event-link-label { font-size: 11.5px; color: #888; font-weight: 700; white-space: nowrap; letter-spacing: .04em; }
+    .event-link-url {
+      flex: 1; font-size: 12px; color: var(--navy-mid);
+      direction: ltr; font-family: monospace; word-break: break-all;
+    }
+    .copy-link-btn {
+      height: 30px; padding: 0 14px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: #f8f9fc;
+      font-family: 'Heebo', sans-serif; font-size: 12px; font-weight: 600;
+      color: var(--navy-mid); cursor: pointer; white-space: nowrap; transition: background .15s;
+    }
+    .copy-link-btn:hover { background: #eef0f8; }
 
     /* ─── Settings card ─── */
-    .settings-card { max-width: 1000px; margin: 20px auto 0; padding: 0 24px; }
+    .settings-wrap { margin-top: 18px; }
     .settings-inner {
       background: white; border-radius: 18px; border: 1px solid var(--border);
-      box-shadow: 0 2px 12px rgba(0,0,0,.07); overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06); overflow: hidden;
     }
     .settings-header {
       padding: 16px 22px; display: flex; align-items: center; gap: 10px;
@@ -94,10 +161,15 @@
     }
     .settings-header:hover { background: #fafbff; }
     .settings-header.open  { border-bottom-color: var(--border); }
+    .settings-header-icon {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: linear-gradient(135deg, #e8f0ff, #d0dcf8);
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
     .settings-header-title { font-size: 15px; font-weight: 700; color: var(--navy); flex: 1; }
-    .settings-chevron { font-size: 12px; color: #aaa; transition: transform .25s; }
+    .settings-chevron { color: #bbb; transition: transform .25s; }
     .settings-header.open .settings-chevron { transform: rotate(180deg); }
-    .settings-body { display: none; padding: 22px; }
+    .settings-body { display: none; padding: 24px; }
     .settings-body.open { display: block; }
 
     .settings-grid { display: grid; grid-template-columns: 210px 1fr; gap: 24px; align-items: start; }
@@ -105,7 +177,7 @@
 
     .img-panel { display: flex; flex-direction: column; gap: 10px; }
     .img-preview {
-      width: 100%; aspect-ratio: 3/4; border-radius: 12px; overflow: hidden;
+      width: 100%; aspect-ratio: 3/4; border-radius: 14px; overflow: hidden;
       border: 2px dashed #d0d8e8; background: #f4f6fb;
       display: flex; align-items: center; justify-content: center;
     }
@@ -122,277 +194,334 @@
     .upload-status.ok  { color: var(--green); }
     .upload-status.err { color: var(--red); }
 
-    .fields-panel { display: flex; flex-direction: column; gap: 12px; }
+    .fields-panel { display: flex; flex-direction: column; gap: 14px; }
     .field-group  { display: flex; flex-direction: column; gap: 5px; }
-    .field-label  { font-size: 11.5px; font-weight: 700; color: #888; letter-spacing: .05em; }
+    .field-label  { font-size: 11px; font-weight: 700; color: #999; letter-spacing: .06em; text-transform: uppercase; }
     .settings-input {
-      height: 42px; border: 1.5px solid var(--border); border-radius: 10px;
+      height: 44px; border: 1.5px solid var(--border); border-radius: 11px;
       padding: 0 14px; font-family: 'Heebo', sans-serif; font-size: 14px;
-      outline: none; background: #f9fafc; width: 100%; transition: border-color .2s;
+      outline: none; background: #f9fafc; width: 100%; transition: border-color .2s, box-shadow .2s;
+      color: #1e1e1e;
     }
-    .settings-input:focus { border-color: var(--gold); background: white; }
+    .settings-input:focus { border-color: var(--gold); background: white; box-shadow: 0 0 0 3px rgba(201,148,58,.1); }
     .fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     @media (max-width: 500px) { .fields-row { grid-template-columns: 1fr; } }
 
-    /* ── Color pickers ── */
     .colors-group { display: flex; flex-direction: column; gap: 10px; }
-    .color-row {
-      display: flex; align-items: center; gap: 10px;
-    }
+    .color-row { display: flex; align-items: center; gap: 10px; }
     .color-label-col { font-size: 12px; color: #777; width: 88px; flex-shrink: 0; line-height: 1.3; }
     input[type="color"] {
-      width: 38px; height: 38px; border: 1.5px solid var(--border);
-      border-radius: 9px; padding: 3px; cursor: pointer; background: white;
-      flex-shrink: 0;
+      width: 40px; height: 40px; border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 3px; cursor: pointer; background: white; flex-shrink: 0;
     }
     .color-preview-btn {
-      flex: 1; height: 38px; border-radius: 9px; border: none;
+      flex: 1; height: 40px; border-radius: 10px; border: none;
       color: white; font-family: 'Heebo', sans-serif; font-size: 12px; font-weight: 700;
       pointer-events: none; min-width: 0; padding: 0 10px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
     }
 
     .save-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
     .save-btn {
-      height: 42px; padding: 0 28px; border-radius: 10px; border: none;
+      height: 44px; padding: 0 28px; border-radius: 11px; border: none;
       background: linear-gradient(135deg, var(--gold), #a07020);
       color: white; font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 700;
-      cursor: pointer; box-shadow: 0 3px 12px rgba(201,148,58,.3); transition: opacity .15s;
+      cursor: pointer; box-shadow: 0 3px 14px rgba(201,148,58,.3); transition: opacity .15s, transform .1s;
     }
-    .save-btn:hover { opacity: .9; }
+    .save-btn:hover { opacity: .9; transform: translateY(-1px); }
     .save-status { font-size: 13px; min-height: 18px; }
     .save-status.ok  { color: var(--green); }
     .save-status.err { color: var(--red); }
 
-    /* ─── Event link ─── */
-    .event-link-bar {
-      max-width: 1000px; margin: 12px auto 0; padding: 0 24px;
-    }
-    .event-link-inner {
-      background: white; border-radius: 12px; border: 1px solid var(--border);
-      padding: 10px 18px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    }
-    .event-link-label { font-size: 12px; color: #888; font-weight: 700; white-space: nowrap; }
-    .event-link-url {
-      flex: 1; font-size: 12.5px; color: var(--navy-mid);
-      direction: ltr; font-family: monospace; word-break: break-all;
-    }
-    .copy-link-btn {
-      height: 30px; padding: 0 14px; border-radius: 7px;
-      border: 1.5px solid var(--border); background: #f8f9fc;
-      font-family: 'Heebo', sans-serif; font-size: 12px; font-weight: 600;
-      color: var(--navy-mid); cursor: pointer; white-space: nowrap; transition: background .15s;
-    }
-    .copy-link-btn:hover { background: #eef0f8; }
-
     /* ─── Stats ─── */
     .stats-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 16px; padding: 20px 24px 0; max-width: 1000px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 16px; margin-top: 20px;
     }
     .stat-card {
-      background: white; border-radius: 16px; padding: 20px 20px 16px;
+      background: white; border-radius: 18px; padding: 22px 20px 18px;
       box-shadow: 0 2px 12px rgba(0,0,0,.07); border: 1px solid var(--border);
-      display: flex; flex-direction: column; gap: 6px;
+      display: flex; flex-direction: column; gap: 4px; position: relative; overflow: hidden;
     }
-    .stat-label { font-size: 11.5px; font-weight: 700; color: #888; letter-spacing: .06em; }
-    .stat-value { font-size: 36px; font-weight: 800; line-height: 1; }
-    .stat-sub   { font-size: 12px; color: #aaa; }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 18px 18px 0 0;
+    }
+    .stat-total::before  { background: linear-gradient(90deg, var(--navy), var(--navy-mid)); }
+    .stat-yes::before    { background: linear-gradient(90deg, #2e7d32, #43a047); }
+    .stat-guests::before { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+    .stat-no::before     { background: linear-gradient(90deg, #e07040, #f0a060); }
+    .stat-icon { font-size: 22px; margin-bottom: 4px; }
+    .stat-label { font-size: 11px; font-weight: 700; color: #999; letter-spacing: .06em; text-transform: uppercase; }
+    .stat-value { font-size: 38px; font-weight: 800; line-height: 1; }
+    .stat-sub   { font-size: 11.5px; color: #bbb; }
     .stat-total  .stat-value { color: var(--navy); }
     .stat-yes    .stat-value { color: var(--green); }
     .stat-guests .stat-value { color: var(--gold); }
     .stat-no     .stat-value { color: #e07040; }
 
     /* ─── Table ─── */
-    .table-section { max-width: 1000px; margin: 20px auto 40px; padding: 0 24px; }
-    .table-card { background: white; border-radius: 18px; box-shadow: 0 2px 12px rgba(0,0,0,.07); border: 1px solid var(--border); overflow: hidden; }
-    .table-toolbar { padding: 16px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+    .table-section { margin-top: 20px; }
+    .table-card {
+      background: white; border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07); border: 1px solid var(--border); overflow: hidden;
+    }
+    .table-toolbar {
+      padding: 16px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      border-bottom: 1px solid var(--border); background: #fafbff;
+    }
+    .toolbar-title { font-size: 14px; font-weight: 700; color: var(--navy); flex: 0 0 auto; }
     .search-input {
       flex: 1; min-width: 200px; height: 40px; border: 1.5px solid var(--border); border-radius: 10px;
       padding: 0 14px; font-family: 'Heebo', sans-serif; font-size: 14px;
-      outline: none; direction: rtl; background: #f9fafc; transition: border-color .2s;
+      outline: none; direction: rtl; background: white; transition: border-color .2s, box-shadow .2s;
     }
-    .search-input:focus { border-color: var(--gold); background: white; }
+    .search-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,148,58,.1); }
     .filter-btns { display: flex; gap: 6px; }
-    .filter-btn { height: 36px; padding: 0 14px; border-radius: 8px; border: 1.5px solid var(--border); background: white; font-family: 'Heebo', sans-serif; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; color: #666; }
+    .filter-btn {
+      height: 36px; padding: 0 14px; border-radius: 9px;
+      border: 1.5px solid var(--border); background: white;
+      font-family: 'Heebo', sans-serif; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: all .15s; color: #666;
+    }
     .filter-btn.active-all  { background: var(--navy); border-color: var(--navy); color: white; }
     .filter-btn.active-yes  { background: var(--green-bg); border-color: #a5d6a7; color: var(--green); }
     .filter-btn.active-no   { background: var(--red-bg); border-color: #ef9a9a; color: var(--red); }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    thead th { background: #f8f9fc; color: #555; font-weight: 700; padding: 12px 16px; text-align: right; border-bottom: 2px solid var(--border); font-size: 12px; letter-spacing: .03em; }
+    thead th {
+      background: #f8f9fc; color: #666; font-weight: 700; padding: 12px 16px;
+      text-align: right; border-bottom: 2px solid var(--border); font-size: 11.5px; letter-spacing: .04em;
+    }
     tbody td { padding: 13px 16px; border-bottom: 1px solid #f0f2f7; vertical-align: middle; }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover td { background: #fafbff; }
     .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 700; }
     .badge-yes { background: var(--green-bg); color: var(--green); }
     .badge-no  { background: var(--red-bg);   color: var(--red); }
-    .guest-count { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: #f0f4ff; color: var(--navy-mid); font-weight: 700; font-size: 13px; }
-    .del-btn { width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid #f0c8c8; background: var(--red-bg); color: var(--red); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all .15s; opacity: .7; }
+    .guest-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 9px;
+      background: linear-gradient(135deg, #e8f0ff, #d0dcf8);
+      color: var(--navy-mid); font-weight: 700; font-size: 13px;
+    }
+    .del-btn {
+      width: 30px; height: 30px; border-radius: 8px;
+      border: 1.5px solid #f0c8c8; background: var(--red-bg);
+      color: var(--red); cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; opacity: .65;
+    }
     .del-btn:hover { opacity: 1; transform: scale(1.1); }
-    .empty-state { padding: 48px; text-align: center; color: #b0b8cc; font-size: 14px; }
-    .loading { padding: 40px; text-align: center; color: #aaa; font-size: 14px; }
-    .loading-ring { width: 32px; height: 32px; margin: 0 auto 12px; border: 3px solid #e0e4ef; border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; }
+    .empty-state { padding: 56px; text-align: center; color: #b0b8cc; font-size: 14px; }
+    .empty-state svg { display: block; margin: 0 auto 12px; opacity: .5; }
+    .loading { padding: 48px; text-align: center; color: #aaa; font-size: 14px; }
+    .loading-ring {
+      width: 32px; height: 32px; margin: 0 auto 12px;
+      border: 3px solid #e0e4ef; border-top-color: var(--gold);
+      border-radius: 50%; animation: spin .8s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
+
     @media (max-width: 600px) {
-      .topbar { padding: 12px 16px; }
-      .stats-grid, .table-section, .settings-card, .event-link-bar { padding: 0 12px; }
-      .stats-grid { padding-top: 12px; }
+      .topbar { height: auto; padding: 12px 16px; }
+      .content { padding: 0 12px 40px; }
       thead th:nth-child(5), tbody td:nth-child(5) { display: none; }
     }
   </style>
 </head>
 <body>
 
-<!-- Login -->
+<!-- ─── Login ─── -->
 <div id="loginScreen">
   <div class="login-box">
-    <div class="login-logo">🔐</div>
-    <div class="login-title">אזור ניהול</div>
-    <div class="login-slug" id="loginSlugLabel"></div>
-    <input type="password" id="pwInput" class="login-input" placeholder="הזינו סיסמת ניהול"
-      onkeydown="if(event.key==='Enter') doLogin()" />
+    <div class="login-header">
+      <div class="login-logo">🔐</div>
+      <div class="login-title">אזור ניהול</div>
+      <div class="login-slug" id="loginSlugLabel"></div>
+    </div>
+
+    <div class="pw-wrap">
+      <input type="password" id="pwInput" class="login-input" placeholder="הזינו סיסמת ניהול"
+        onkeydown="if(event.key==='Enter') doLogin()" />
+      <button class="pw-eye" type="button" onclick="togglePw('pwInput','eyeLogin')" tabindex="-1">
+        <svg id="eyeLogin" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
     <div class="login-error" id="loginError"></div>
-    <button class="login-btn" onclick="doLogin()">כניסה</button>
-    <div class="login-back"><a href="/register.html">← חזרה לדף הראשי</a></div>
+    <button class="login-btn" onclick="doLogin()">כניסה לממשק הניהול</button>
+    <div class="login-links">
+      <a href="/forgot.html">שכחתי סיסמה</a>
+      <a href="/register.html">← חזרה לדף הראשי</a>
+    </div>
   </div>
 </div>
 
-<!-- Dashboard -->
+<!-- ─── Dashboard ─── -->
 <div id="dashboard">
 
   <div class="topbar">
-    <div>
-      <div class="topbar-title">✡ &nbsp;ניהול אישורי הגעה</div>
-      <div class="topbar-slug" id="topbarSlug"></div>
+    <div class="topbar-brand">
+      <div class="topbar-icon">✡</div>
+      <div>
+        <div class="topbar-title">ניהול אישורי הגעה</div>
+        <div class="topbar-slug" id="topbarSlug"></div>
+      </div>
     </div>
     <div class="topbar-actions">
       <button class="topbar-btn" onclick="exportCSV()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         ייצוא CSV
       </button>
-      <button class="topbar-btn logout" onclick="logout()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <button class="topbar-btn danger" onclick="logout()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         יציאה
       </button>
     </div>
   </div>
 
-  <!-- Event link bar -->
-  <div class="event-link-bar">
-    <div class="event-link-inner">
-      <div class="event-link-label">קישור לאירוע:</div>
-      <div class="event-link-url" id="eventLinkUrl"></div>
-      <button class="copy-link-btn" onclick="copyEventLink()">העתק</button>
-    </div>
-  </div>
+  <div class="content">
 
-  <!-- Settings card -->
-  <div class="settings-card">
-    <div class="settings-inner">
-      <div class="settings-header" id="settingsHeader" onclick="toggleSettings()">
-        <span style="font-size:18px">⚙️</span>
-        <div class="settings-header-title">הגדרות האירוע</div>
-        <span class="settings-chevron">▼</span>
+    <!-- Event link bar -->
+    <div class="event-link-bar">
+      <div class="event-link-inner">
+        <div class="event-link-label">קישור לאירוע</div>
+        <div class="event-link-url" id="eventLinkUrl"></div>
+        <button class="copy-link-btn" onclick="copyEventLink()">העתק</button>
       </div>
-      <div class="settings-body" id="settingsBody">
-        <div class="settings-grid">
+    </div>
 
-          <!-- Image panel -->
-          <div class="img-panel">
-            <div class="field-label">תמונת ההזמנה</div>
-            <div class="img-preview" id="imgPreviewBox">
-              <img id="settingsImg" src="" alt="תמונת הזמנה" />
-              <div class="img-placeholder" id="imgPlaceholder">📷<br/>לא הועלתה תמונה</div>
-            </div>
-            <input type="file" id="imgFileInput" accept="image/jpeg,image/png,image/webp"
-              style="display:none" onchange="uploadImage(this)" />
-            <button class="upload-btn" onclick="document.getElementById('imgFileInput').click()">📤 העלה תמונה</button>
-            <div class="upload-status" id="uploadStatus"></div>
-          </div>
+    <!-- Settings card -->
+    <div class="settings-wrap">
+      <div class="settings-inner">
+        <div class="settings-header" id="settingsHeader" onclick="toggleSettings()">
+          <div class="settings-header-icon">⚙️</div>
+          <div class="settings-header-title">הגדרות האירוע</div>
+          <svg class="settings-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="settings-body" id="settingsBody">
+          <div class="settings-grid">
 
-          <!-- Fields panel -->
-          <div class="fields-panel">
-
-            <div class="fields-row">
-              <div class="field-group">
-                <div class="field-label">שם האירוע</div>
-                <input type="text" class="settings-input" id="s-title" placeholder='בר מצווה של דן' />
+            <!-- Image panel -->
+            <div class="img-panel">
+              <div class="field-label">תמונת ההזמנה</div>
+              <div class="img-preview" id="imgPreviewBox">
+                <img id="settingsImg" src="" alt="תמונת הזמנה" />
+                <div class="img-placeholder" id="imgPlaceholder">📷<br/>לא הועלתה תמונה</div>
               </div>
-              <div class="field-group">
-                <div class="field-label">תאריך האירוע</div>
-                <input type="date" class="settings-input" id="s-date" />
-              </div>
+              <input type="file" id="imgFileInput" accept="image/jpeg,image/png,image/webp"
+                style="display:none" onchange="uploadImage(this)" />
+              <button class="upload-btn" onclick="document.getElementById('imgFileInput').click()">📤 העלה תמונה</button>
+              <div class="upload-status" id="uploadStatus"></div>
             </div>
 
-            <div class="field-group">
-              <div class="field-label">מספר טלפון</div>
-              <input type="tel" class="settings-input" id="s-phone" dir="ltr" placeholder="050-0000000" />
-            </div>
+            <!-- Fields panel -->
+            <div class="fields-panel">
 
-            <div class="field-group">
-              <div class="field-label">מיקום האירוע (לניווט ומפה)</div>
-              <input type="text" class="settings-input" id="s-location" placeholder="רחוב הדוגמה 1, תל אביב" />
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">טקסט תחתית העמוד</div>
-              <input type="text" class="settings-input" id="s-family" placeholder="משפחת ישראלי" />
-            </div>
-
-            <!-- Color pickers -->
-            <div class="field-group">
-              <div class="field-label">עיצוב כפתורים</div>
-              <div class="colors-group">
-                <div class="color-row">
-                  <div class="color-label-col">כפתור<br/>הגעה</div>
-                  <input type="color" id="s-color-confirm" value="#3a6b47" oninput="updateColorPreviews()" />
-                  <button class="color-preview-btn" id="previewConfirm">✔ מגיעים בשמחה!</button>
+              <div class="fields-row">
+                <div class="field-group">
+                  <div class="field-label">שם האירוע</div>
+                  <input type="text" class="settings-input" id="s-title" placeholder='בר מצווה של דן' />
                 </div>
-                <div class="color-row">
-                  <div class="color-label-col">כפתור<br/>אי-הגעה</div>
-                  <input type="color" id="s-color-decline" value="#b0b8c4" oninput="updateColorPreviews()" />
-                  <button class="color-preview-btn" id="previewDecline">✘ לא יכולים</button>
+                <div class="field-group">
+                  <div class="field-label">תאריך האירוע</div>
+                  <input type="date" class="settings-input" id="s-date" />
                 </div>
               </div>
-            </div>
 
-            <div class="save-row">
-              <button class="save-btn" onclick="saveSettings()">💾 שמור שינויים</button>
-              <div class="save-status" id="saveStatus"></div>
-            </div>
+              <div class="field-group">
+                <div class="field-label">מספר טלפון</div>
+                <input type="tel" class="settings-input" id="s-phone" dir="ltr" placeholder="050-0000000" />
+              </div>
 
+              <div class="field-group">
+                <div class="field-label">מיקום האירוע</div>
+                <input type="text" class="settings-input" id="s-location" placeholder="רחוב הדוגמה 1, תל אביב" />
+              </div>
+
+              <div class="field-group">
+                <div class="field-label">טקסט תחתית העמוד</div>
+                <input type="text" class="settings-input" id="s-family" placeholder="משפחת ישראלי" />
+              </div>
+
+              <!-- Color pickers -->
+              <div class="field-group">
+                <div class="field-label">עיצוב כפתורים</div>
+                <div class="colors-group">
+                  <div class="color-row">
+                    <div class="color-label-col">כפתור<br/>הגעה</div>
+                    <input type="color" id="s-color-confirm" value="#3a6b47" oninput="updateColorPreviews()" />
+                    <button class="color-preview-btn" id="previewConfirm">✔ מגיעים בשמחה!</button>
+                  </div>
+                  <div class="color-row">
+                    <div class="color-label-col">כפתור<br/>אי-הגעה</div>
+                    <input type="color" id="s-color-decline" value="#b0b8c4" oninput="updateColorPreviews()" />
+                    <button class="color-preview-btn" id="previewDecline">✘ לא יכולים</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="save-row">
+                <button class="save-btn" onclick="saveSettings()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-left:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  שמור שינויים
+                </button>
+                <div class="save-status" id="saveStatus"></div>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Stats -->
-  <div class="stats-grid" id="statsGrid">
-    <div class="stat-card stat-total"><div class="stat-label">סה״כ תשובות</div><div class="stat-value" id="s-total">—</div></div>
-    <div class="stat-card stat-yes"><div class="stat-label">מגיעים</div><div class="stat-value" id="s-yes">—</div><div class="stat-sub">משפחות</div></div>
-    <div class="stat-card stat-guests"><div class="stat-label">סה״כ אורחים</div><div class="stat-value" id="s-guests">—</div><div class="stat-sub">אנשים</div></div>
-    <div class="stat-card stat-no"><div class="stat-label">לא מגיעים</div><div class="stat-value" id="s-no">—</div></div>
-  </div>
-
-  <!-- Table -->
-  <div class="table-section">
-    <div class="table-card">
-      <div class="table-toolbar">
-        <input type="text" class="search-input" id="searchInput" placeholder="🔍  חיפוש לפי שם או טלפון..." />
-        <div class="filter-btns">
-          <button class="filter-btn active-all" id="f-all" onclick="setFilter('all')">הכל</button>
-          <button class="filter-btn" id="f-yes"  onclick="setFilter('yes')">✔ מגיעים</button>
-          <button class="filter-btn" id="f-no"   onclick="setFilter('no')">✘ לא מגיעים</button>
-        </div>
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card stat-total">
+        <div class="stat-icon">📊</div>
+        <div class="stat-label">סה״כ תשובות</div>
+        <div class="stat-value" id="s-total">—</div>
       </div>
-      <div id="tableContainer">
-        <div class="loading"><div class="loading-ring"></div>טוען...</div>
+      <div class="stat-card stat-yes">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">מגיעים</div>
+        <div class="stat-value" id="s-yes">—</div>
+        <div class="stat-sub">משפחות</div>
+      </div>
+      <div class="stat-card stat-guests">
+        <div class="stat-icon">👥</div>
+        <div class="stat-label">סה״כ אורחים</div>
+        <div class="stat-value" id="s-guests">—</div>
+        <div class="stat-sub">אנשים</div>
+      </div>
+      <div class="stat-card stat-no">
+        <div class="stat-icon">❌</div>
+        <div class="stat-label">לא מגיעים</div>
+        <div class="stat-value" id="s-no">—</div>
       </div>
     </div>
-  </div>
 
-</div>
+    <!-- Table -->
+    <div class="table-section">
+      <div class="table-card">
+        <div class="table-toolbar">
+          <div class="toolbar-title">רשימת אישורים</div>
+          <input type="text" class="search-input" id="searchInput" placeholder="🔍  חיפוש לפי שם או טלפון..." />
+          <div class="filter-btns">
+            <button class="filter-btn active-all" id="f-all" onclick="setFilter('all')">הכל</button>
+            <button class="filter-btn" id="f-yes"  onclick="setFilter('yes')">✔ מגיעים</button>
+            <button class="filter-btn" id="f-no"   onclick="setFilter('no')">✘ לא מגיעים</button>
+          </div>
+        </div>
+        <div id="tableContainer">
+          <div class="loading"><div class="loading-ring"></div>טוען...</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /dashboard -->
 
 <script>
   /* ── Slug ── */
@@ -403,15 +532,27 @@
   const API_BASE     = `/api/${slug}/rsvp`;
   const SETTINGS_API = `/api/${slug}/settings`;
 
-  // Show slug in login and topbar
-  document.getElementById('loginSlugLabel').textContent  = slug;
-  document.getElementById('topbarSlug').textContent      = slug;
+  document.getElementById('loginSlugLabel').textContent = slug;
+  document.getElementById('topbarSlug').textContent     = slug;
   const eventUrl = `${location.origin}/index.html?slug=${slug}`;
-  document.getElementById('eventLinkUrl').textContent    = eventUrl;
+  document.getElementById('eventLinkUrl').textContent   = eventUrl;
 
   let adminPw = sessionStorage.getItem('adminPw') || '';
   let allData = [];
   let filter  = 'all';
+
+  /* ── Show/hide password ── */
+  function togglePw(inputId, eyeId) {
+    const inp = document.getElementById(inputId);
+    const eye = document.getElementById(eyeId);
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    eye.innerHTML = show
+      ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+         <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+         <line x1="1" y1="1" x2="23" y2="23"/>`
+      : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  }
 
   /* ── Auth ── */
   window.addEventListener('load', () => { adminPw ? tryAutoLogin() : showLogin(); });
@@ -463,10 +604,8 @@
 
   function authHeaders() { return { 'X-Admin-Password': adminPw }; }
 
-  /* ── Event link copy ── */
-  function copyEventLink() {
-    navigator.clipboard.writeText(eventUrl).catch(() => {});
-  }
+  /* ── Event link ── */
+  function copyEventLink() { navigator.clipboard.writeText(eventUrl).catch(() => {}); }
 
   /* ── Stats ── */
   async function loadStats() {
@@ -506,7 +645,6 @@
       document.getElementById('s-color-confirm').value = s.confirmColor || '#3a6b47';
       document.getElementById('s-color-decline').value = s.declineColor || '#b0b8c4';
       updateColorPreviews();
-
       if (s.hasImage) {
         const img = document.getElementById('settingsImg');
         img.src = SETTINGS_API + '/image?' + Date.now();
@@ -517,14 +655,12 @@
   }
 
   function updateColorPreviews() {
-    const confirmColor  = document.getElementById('s-color-confirm').value;
-    const declineColor  = document.getElementById('s-color-decline').value;
-    const confirmLight  = lightenHex(confirmColor, 55);
-    const declineLight  = lightenHex(declineColor, 40);
+    const cc = document.getElementById('s-color-confirm').value;
+    const dc = document.getElementById('s-color-decline').value;
     document.getElementById('previewConfirm').style.background =
-      `linear-gradient(135deg, ${confirmLight} 0%, ${confirmColor} 100%)`;
+      `linear-gradient(135deg, ${lightenHex(cc, 55)} 0%, ${cc} 100%)`;
     document.getElementById('previewDecline').style.background =
-      `linear-gradient(135deg, ${declineLight} 0%, ${declineColor} 100%)`;
+      `linear-gradient(135deg, ${lightenHex(dc, 40)} 0%, ${dc} 100%)`;
   }
 
   async function saveSettings() {
@@ -616,21 +752,21 @@
 
   function renderTable() {
     const q = document.getElementById('searchInput')?.value?.trim().toLowerCase() || '';
-    let rows = allData.filter(e => {
+    const rows = allData.filter(e => {
       const matchSearch = !q || (e.firstName+' '+e.lastName).toLowerCase().includes(q) || e.phone.includes(q);
       const matchFilter = filter === 'all' || (filter === 'yes' && e.attending) || (filter === 'no' && !e.attending);
       return matchSearch && matchFilter;
     });
     const container = document.getElementById('tableContainer');
     if (!rows.length) {
-      container.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><div>לא נמצאו רשומות</div></div>`;
+      container.innerHTML = `<div class="empty-state"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><div>לא נמצאו רשומות</div></div>`;
       return;
     }
     const html = rows.map((e, i) => `
       <tr>
-        <td style="color:#aaa;font-size:12px;width:36px">${i+1}</td>
+        <td style="color:#ccc;font-size:12px;width:36px">${i+1}</td>
         <td><strong>${e.firstName} ${e.lastName}</strong></td>
-        <td dir="ltr" style="color:#555">${e.phone}</td>
+        <td dir="ltr" style="color:#666;font-family:monospace">${e.phone}</td>
         <td>${e.attending ? `<span class="guest-count">${e.guests}</span>` : '<span style="color:#ccc">—</span>'}</td>
         <td><span class="badge ${e.attending ? 'badge-yes':'badge-no'}">${e.attending ? '✔ מגיע':'✘ לא מגיע'}</span></td>
         <td style="color:#aaa;font-size:12px">${new Date(e.createdAt).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>

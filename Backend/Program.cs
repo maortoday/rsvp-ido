@@ -1,7 +1,10 @@
 using System.Security.Cryptography;
 using System.Threading.RateLimiting;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using MimeKit;
 using RsvpApi.Data;
 using RsvpApi.Dtos;
 using RsvpApi.Models;
@@ -11,7 +14,18 @@ var builder = WebApplication.CreateBuilder(args);
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5050";
 builder.WebHost.UseUrls($"http://+:{port}");
 
-var allowedOrigin = builder.Configuration["AllowedOrigin"] ?? "*";
+// ── Config ────────────────────────────────────────────────
+var allowedOrigin   = builder.Configuration["AllowedOrigin"]      ?? "*";
+var superAdminPw    = builder.Configuration["SuperAdminPassword"]  ?? "";
+var smtpHost        = builder.Configuration["SmtpHost"]            ?? "";
+var smtpPort        = int.TryParse(builder.Configuration["SmtpPort"], out var sp) ? sp : 587;
+var smtpUser        = builder.Configuration["SmtpUser"]            ?? "";
+var smtpPass        = builder.Configuration["SmtpPass"]            ?? "";
+var smtpFrom        = builder.Configuration["SmtpFrom"]            ?? smtpUser;
+var twilioSid       = builder.Configuration["TwilioSid"]           ?? "";
+var twilioToken     = builder.Configuration["TwilioToken"]         ?? "";
+var twilioFrom      = builder.Configuration["TwilioFrom"]          ?? "";
+var appOrigin       = builder.Configuration["AppOrigin"]           ?? "";
 
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlite("Data Source=rsvp.db"));
@@ -28,29 +42,23 @@ builder.Services.AddCors(opt =>
 builder.Services.AddRateLimiter(opt =>
 {
     opt.RejectionStatusCode = 429;
-
     opt.AddPolicy("rsvp-submit", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-                { PermitLimit = 5, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
-
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
     opt.AddPolicy("admin", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-                { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
-
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     opt.AddPolicy("auth", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-                { PermitLimit = 10, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
 });
 
 var app = builder.Build();
 
-// ── DB migration on startup ───────────────────────────────
+// ── DB migration ──────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -58,12 +66,17 @@ using (var scope = app.Services.CreateScope())
 
     db.Database.ExecuteSqlRaw("""
         CREATE TABLE IF NOT EXISTS "Users" (
-            "Id"           INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT,
-            "Email"        TEXT    NOT NULL DEFAULT '',
-            "PasswordHash" TEXT    NOT NULL DEFAULT '',
-            "Slug"         TEXT    NOT NULL DEFAULT '',
-            "RecoveryCode" TEXT    NOT NULL DEFAULT '',
-            "CreatedAt"    TEXT    NOT NULL DEFAULT ''
+            "Id"                 INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT,
+            "Email"              TEXT    NOT NULL DEFAULT '',
+            "PasswordHash"       TEXT    NOT NULL DEFAULT '',
+            "Slug"               TEXT    NOT NULL DEFAULT '',
+            "PhoneNumber"        TEXT    NOT NULL DEFAULT '',
+            "RecoveryCode"       TEXT    NOT NULL DEFAULT '',
+            "EmailResetToken"    TEXT    NOT NULL DEFAULT '',
+            "EmailResetExpiry"   TEXT,
+            "SmsResetCode"       TEXT    NOT NULL DEFAULT '',
+            "SmsResetExpiry"     TEXT,
+            "CreatedAt"          TEXT    NOT NULL DEFAULT ''
         )
     """);
 
@@ -83,18 +96,20 @@ using (var scope = app.Services.CreateScope())
         )
     """);
 
-    // Add columns to pre-existing tables (safe to run on every start)
     foreach (var sql in new[]
     {
-        "ALTER TABLE SiteSettings ADD COLUMN \"Slug\"         TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE SiteSettings ADD COLUMN \"DeclineColor\" TEXT NOT NULL DEFAULT '#b0b8c4'",
-        "ALTER TABLE SiteSettings ADD COLUMN \"EventTitle\"   TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE SiteSettings ADD COLUMN \"EventDate\"    TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE RsvpEntries  ADD COLUMN \"Slug\"         TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE Users        ADD COLUMN \"PhoneNumber\"      TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE Users        ADD COLUMN \"EmailResetToken\"  TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE Users        ADD COLUMN \"EmailResetExpiry\" TEXT",
+        "ALTER TABLE Users        ADD COLUMN \"SmsResetCode\"     TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE Users        ADD COLUMN \"SmsResetExpiry\"   TEXT",
+        "ALTER TABLE SiteSettings ADD COLUMN \"Slug\"             TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE SiteSettings ADD COLUMN \"DeclineColor\"     TEXT NOT NULL DEFAULT '#b0b8c4'",
+        "ALTER TABLE SiteSettings ADD COLUMN \"EventTitle\"       TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE SiteSettings ADD COLUMN \"EventDate\"        TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE RsvpEntries  ADD COLUMN \"Slug\"             TEXT NOT NULL DEFAULT ''",
     })
-    {
-        try { db.Database.ExecuteSqlRaw(sql); } catch { /* column already exists */ }
-    }
+    { try { db.Database.ExecuteSqlRaw(sql); } catch { } }
 }
 
 // ── Security headers ──────────────────────────────────────
@@ -125,7 +140,10 @@ app.UseRateLimiter();
 
 app.MapGet("/health", () => "ok");
 
-app.UseDefaultFiles();
+var dfo = new DefaultFilesOptions();
+dfo.DefaultFileNames.Clear();
+dfo.DefaultFileNames.Add("register.html");
+app.UseDefaultFiles(dfo);
 app.UseStaticFiles();
 
 // ── Helpers ───────────────────────────────────────────────
@@ -133,7 +151,7 @@ static string Sanitize(string s) =>
     s.Trim().Replace("<", "").Replace(">", "").Replace("\"", "");
 
 static bool IsValidPhone(string p) =>
-    System.Text.RegularExpressions.Regex.IsMatch(p, @"^[\d\-\+\s]{7,15}$");
+    System.Text.RegularExpressions.Regex.IsMatch(p, @"^[\d\-\+\s\(\)]{7,20}$");
 
 static bool IsValidSlug(string s) =>
     !string.IsNullOrWhiteSpace(s) &&
@@ -160,29 +178,66 @@ static bool VerifyPassword(string password, string stored)
     catch { return false; }
 }
 
-static string GenerateRecoveryCode()
+static string GenerateRecoveryCode() =>
+    Convert.ToHexString(RandomNumberGenerator.GetBytes(6)).ToUpper();
+
+bool IsAdmin(HttpContext ctx, User? user) =>
+    user is not null &&
+    ctx.Request.Headers.TryGetValue("X-Admin-Password", out var val) &&
+    VerifyPassword(val!, user.PasswordHash);
+
+bool IsSuperAdmin(HttpContext ctx) =>
+    !string.IsNullOrEmpty(superAdminPw) &&
+    ctx.Request.Headers.TryGetValue("X-Super-Admin-Password", out var val) &&
+    CryptographicOperations.FixedTimeEquals(
+        System.Text.Encoding.UTF8.GetBytes(val.ToString().PadRight(64)),
+        System.Text.Encoding.UTF8.GetBytes(superAdminPw.PadRight(64)));
+
+async Task SendEmailAsync(string to, string subject, string htmlBody)
 {
-    var bytes = RandomNumberGenerator.GetBytes(6);
-    return Convert.ToHexString(bytes).ToUpper(); // 12-char hex
+    if (string.IsNullOrEmpty(smtpHost)) return;
+    try
+    {
+        var msg = new MimeMessage();
+        msg.From.Add(new MailboxAddress("מערכת אישורי הגעה", smtpFrom));
+        msg.To.Add(new MailboxAddress("", to));
+        msg.Subject = subject;
+        msg.Body    = new TextPart("html") { Text = htmlBody };
+        using var client = new SmtpClient();
+        await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
+        await client.AuthenticateAsync(smtpUser, smtpPass);
+        await client.SendAsync(msg);
+        await client.DisconnectAsync(true);
+    }
+    catch { }
 }
 
-bool IsAdmin(HttpContext ctx, User? user)
+async Task SendSmsAsync(string to, string body)
 {
-    if (user is null) return false;
-    if (!ctx.Request.Headers.TryGetValue("X-Admin-Password", out var val)) return false;
-    return VerifyPassword(val!, user.PasswordHash);
+    if (string.IsNullOrEmpty(twilioSid)) return;
+    try
+    {
+        using var http = new HttpClient();
+        var creds = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{twilioSid}:{twilioToken}"));
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", creds);
+        await http.PostAsync(
+            $"https://api.twilio.com/2010-04-01/Accounts/{twilioSid}/Messages.json",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+                { ["To"] = to, ["From"] = twilioFrom, ["Body"] = body }));
+    }
+    catch { }
 }
 
 static RsvpResponse ToResponse(RsvpEntry e) =>
     new(e.Id, e.FirstName, e.LastName, e.Phone, e.Guests, e.Attending, e.CreatedAt);
 
-// ── Auth endpoints ─────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────
 
-// POST /api/auth/register
-app.MapPost("/api/auth/register", async (RegisterRequest req, AppDbContext db) =>
+app.MapPost("/api/auth/register", async (RegisterRequest req, AppDbContext db, HttpContext ctx) =>
 {
     var email = req.Email?.ToLower().Trim() ?? "";
-    var slug  = req.Slug?.ToLower().Trim() ?? "";
+    var slug  = req.Slug?.ToLower().Trim()  ?? "";
 
     if (!email.Contains('@') || email.Length < 5)
         return Results.BadRequest(new { error = "כתובת מייל לא תקינה" });
@@ -202,23 +257,21 @@ app.MapPost("/api/auth/register", async (RegisterRequest req, AppDbContext db) =
         Email        = email,
         PasswordHash = HashPassword(req.Password),
         Slug         = slug,
+        PhoneNumber  = req.PhoneNumber?.Trim() ?? "",
         RecoveryCode = HashPassword(recoveryCode),
         CreatedAt    = DateTime.UtcNow
     };
     db.Users.Add(user);
-
     db.SiteSettings.Add(new SiteSettings
     {
         Slug       = slug,
         EventTitle = req.EventTitle?.Trim() ?? "",
         EventDate  = req.EventDate?.Trim()  ?? ""
     });
-
     await db.SaveChangesAsync();
     return Results.Ok(new RegisterResponse(slug, recoveryCode));
 }).RequireRateLimiting("auth");
 
-// POST /api/auth/login
 app.MapPost("/api/auth/login", async (LoginRequest req, AppDbContext db) =>
 {
     var email = req.Email?.ToLower().Trim() ?? "";
@@ -228,36 +281,153 @@ app.MapPost("/api/auth/login", async (LoginRequest req, AppDbContext db) =>
     return Results.Ok(new { slug = user.Slug });
 }).RequireRateLimiting("auth");
 
-// POST /api/auth/reset
 app.MapPost("/api/auth/reset", async (ResetPasswordRequest req, AppDbContext db) =>
 {
     var email = req.Email?.ToLower().Trim() ?? "";
     var user  = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
-    if (user is null)
-        return Results.BadRequest(new { error = "כתובת המייל לא נמצאה" });
-    if (!VerifyPassword(req.RecoveryCode ?? "", user.RecoveryCode))
-        return Results.BadRequest(new { error = "קוד השחזור שגוי" });
+    if (user is null || !VerifyPassword(req.RecoveryCode ?? "", user.RecoveryCode))
+        return Results.BadRequest(new { error = "מייל או קוד שחזור שגויים" });
     if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < 6)
         return Results.BadRequest(new { error = "הסיסמה חייבת להיות לפחות 6 תווים" });
-
     user.PasswordHash = HashPassword(req.NewPassword);
-    // Invalidate old recovery code — user must contact support for a new one
     user.RecoveryCode = HashPassword(GenerateRecoveryCode() + GenerateRecoveryCode());
     await db.SaveChangesAsync();
     return Results.Ok(new { success = true });
 }).RequireRateLimiting("auth");
 
-// ── RSVP endpoints (slug-scoped) ──────────────────────────
+// Email reset
+app.MapPost("/api/auth/forgot-email", async (ForgotEmailRequest req, AppDbContext db) =>
+{
+    var email = req.Email?.ToLower().Trim() ?? "";
+    var user  = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+    if (user is not null)
+    {
+        var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+        user.EmailResetToken  = HashPassword(rawToken);
+        user.EmailResetExpiry = DateTime.UtcNow.AddHours(1);
+        await db.SaveChangesAsync();
 
-// POST /api/{slug}/rsvp
+        var origin   = string.IsNullOrEmpty(appOrigin) ? "" : appOrigin;
+        var resetUrl = $"{origin}/forgot.html?method=email&token={Uri.EscapeDataString(rawToken)}&email={Uri.EscapeDataString(email)}";
+        var html = $"""
+            <div dir="rtl" style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;background:#fdfaf4;border-radius:16px;border:1px solid #e8c06a">
+              <h2 style="color:#1a2a4a;margin-bottom:8px">איפוס סיסמה</h2>
+              <p style="color:#555;line-height:1.7">קיבלנו בקשה לאיפוס הסיסמה שלך. לחצו על הכפתור להמשך:</p>
+              <div style="text-align:center;margin:28px 0">
+                <a href="{resetUrl}" style="background:linear-gradient(135deg,#c9943a,#a07020);color:white;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px">
+                  לאיפוס הסיסמה
+                </a>
+              </div>
+              <p style="color:#aaa;font-size:12px">הקישור תקף לשעה אחת. אם לא ביקשתם איפוס — התעלמו מהודעה זו.</p>
+            </div>
+        """;
+        _ = Task.Run(() => SendEmailAsync(email, "איפוס סיסמה — מערכת אישורי הגעה", html));
+    }
+    return Results.Ok(new { message = "אם המייל קיים במערכת, נשלחה הוראת איפוס" });
+}).RequireRateLimiting("auth");
+
+app.MapPost("/api/auth/reset-email", async (ResetEmailRequest req, AppDbContext db) =>
+{
+    var email = req.Email?.ToLower().Trim() ?? "";
+    var user  = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+    if (user is null || user.EmailResetExpiry < DateTime.UtcNow || string.IsNullOrEmpty(user.EmailResetToken))
+        return Results.BadRequest(new { error = "קישור האיפוס לא תקין או פג תוקף" });
+    if (!VerifyPassword(req.Token ?? "", user.EmailResetToken))
+        return Results.BadRequest(new { error = "קישור האיפוס לא תקין" });
+    if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < 6)
+        return Results.BadRequest(new { error = "הסיסמה חייבת להיות לפחות 6 תווים" });
+    user.PasswordHash    = HashPassword(req.NewPassword);
+    user.EmailResetToken = "";
+    user.EmailResetExpiry = null;
+    await db.SaveChangesAsync();
+    return Results.Ok(new { success = true });
+}).RequireRateLimiting("auth");
+
+// SMS reset
+app.MapPost("/api/auth/forgot-sms", async (ForgotSmsRequest req, AppDbContext db) =>
+{
+    var email = req.Email?.ToLower().Trim() ?? "";
+    var user  = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+    if (user is not null && !string.IsNullOrEmpty(user.PhoneNumber))
+    {
+        var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        user.SmsResetCode   = HashPassword(code);
+        user.SmsResetExpiry = DateTime.UtcNow.AddMinutes(10);
+        await db.SaveChangesAsync();
+        _ = Task.Run(() => SendSmsAsync(user.PhoneNumber, $"קוד לאיפוס סיסמה: {code}\nתקף ל-10 דקות."));
+    }
+    return Results.Ok(new { message = "אם המייל קיים ומשויך למספר טלפון, נשלח SMS" });
+}).RequireRateLimiting("auth");
+
+app.MapPost("/api/auth/reset-sms", async (ResetSmsRequest req, AppDbContext db) =>
+{
+    var email = req.Email?.ToLower().Trim() ?? "";
+    var user  = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+    if (user is null || user.SmsResetExpiry < DateTime.UtcNow || string.IsNullOrEmpty(user.SmsResetCode))
+        return Results.BadRequest(new { error = "הקוד לא תקין או פג תוקף" });
+    if (!VerifyPassword(req.Code ?? "", user.SmsResetCode))
+        return Results.BadRequest(new { error = "הקוד שגוי" });
+    if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < 6)
+        return Results.BadRequest(new { error = "הסיסמה חייבת להיות לפחות 6 תווים" });
+    user.PasswordHash  = HashPassword(req.NewPassword);
+    user.SmsResetCode  = "";
+    user.SmsResetExpiry = null;
+    await db.SaveChangesAsync();
+    return Results.Ok(new { success = true });
+}).RequireRateLimiting("auth");
+
+// ── Super admin ───────────────────────────────────────────
+
+app.MapGet("/api/superadmin/users", async (HttpContext ctx, AppDbContext db) =>
+{
+    if (!IsSuperAdmin(ctx)) return Results.Unauthorized();
+    var users    = await db.Users.OrderByDescending(u => u.CreatedAt).ToListAsync();
+    var settings = await db.SiteSettings.ToListAsync();
+    var rsvps    = await db.RsvpEntries.ToListAsync();
+
+    var result = users.Select(u =>
+    {
+        var s    = settings.FirstOrDefault(x => x.Slug == u.Slug);
+        var r    = rsvps.Where(x => x.Slug == u.Slug).ToList();
+        var att  = r.Where(x => x.Attending).ToList();
+        return new
+        {
+            id          = u.Id,
+            email       = u.Email,
+            slug        = u.Slug,
+            phone       = u.PhoneNumber,
+            createdAt   = u.CreatedAt,
+            eventTitle  = s?.EventTitle ?? "",
+            eventDate   = s?.EventDate  ?? "",
+            totalRsvps  = r.Count,
+            attending   = att.Count,
+            totalGuests = att.Sum(x => x.Guests)
+        };
+    });
+    return Results.Ok(result);
+}).RequireRateLimiting("admin");
+
+app.MapGet("/api/superadmin/stats", async (HttpContext ctx, AppDbContext db) =>
+{
+    if (!IsSuperAdmin(ctx)) return Results.Unauthorized();
+    return Results.Ok(new
+    {
+        totalUsers  = await db.Users.CountAsync(),
+        totalEvents = await db.SiteSettings.CountAsync(),
+        totalRsvps  = await db.RsvpEntries.CountAsync(),
+        attending   = await db.RsvpEntries.CountAsync(e => e.Attending)
+    });
+}).RequireRateLimiting("admin");
+
+// ── RSVP endpoints ────────────────────────────────────────
+
 app.MapPost("/api/{slug}/rsvp", async (string slug, SubmitRsvpRequest req, AppDbContext db) =>
 {
-    if (!await db.Users.AnyAsync(u => u.Slug == slug))
-        return Results.NotFound(new { error = "האירוע לא נמצא" });
+    var eventUser = await db.Users.FirstOrDefaultAsync(u => u.Slug == slug);
+    if (eventUser is null) return Results.NotFound(new { error = "האירוע לא נמצא" });
 
-    if (string.IsNullOrWhiteSpace(req.FirstName) ||
-        string.IsNullOrWhiteSpace(req.LastName)  ||
-        string.IsNullOrWhiteSpace(req.Phone))
+    if (string.IsNullOrWhiteSpace(req.FirstName) || string.IsNullOrWhiteSpace(req.LastName) || string.IsNullOrWhiteSpace(req.Phone))
         return Results.BadRequest(new { error = "שדות חובה חסרים" });
     if (req.FirstName.Length > 50 || req.LastName.Length > 50)
         return Results.BadRequest(new { error = "שם ארוך מדי" });
@@ -278,15 +448,22 @@ app.MapPost("/api/{slug}/rsvp", async (string slug, SubmitRsvpRequest req, AppDb
     };
     db.RsvpEntries.Add(entry);
     await db.SaveChangesAsync();
+
+    // SMS notification to event admin
+    if (!string.IsNullOrEmpty(eventUser.PhoneNumber))
+    {
+        var status    = req.Attending ? $"מגיע/ה ✓ ({req.Guests} אורחים)" : "לא מגיע/ה ✗";
+        var notifBody = $"אישור הגעה חדש!\n{entry.FirstName} {entry.LastName} — {status}\nטלפון: {entry.Phone}";
+        _ = Task.Run(() => SendSmsAsync(eventUser.PhoneNumber, notifBody));
+    }
+
     return Results.Created($"/api/{slug}/rsvp/{entry.Id}", ToResponse(entry));
 }).RequireRateLimiting("rsvp-submit");
 
-// GET /api/{slug}/rsvp (admin)
 app.MapGet("/api/{slug}/rsvp", async (string slug, HttpContext ctx, AppDbContext db, string? q) =>
 {
     var user = await db.Users.FirstOrDefaultAsync(u => u.Slug == slug);
     if (!IsAdmin(ctx, user)) return Results.Unauthorized();
-
     var query = db.RsvpEntries.Where(e => e.Slug == slug);
     if (!string.IsNullOrWhiteSpace(q))
     {
@@ -300,26 +477,19 @@ app.MapGet("/api/{slug}/rsvp", async (string slug, HttpContext ctx, AppDbContext
     return Results.Ok(list);
 }).RequireRateLimiting("admin");
 
-// GET /api/{slug}/rsvp/stats (admin)
 app.MapGet("/api/{slug}/rsvp/stats", async (string slug, HttpContext ctx, AppDbContext db) =>
 {
     var user = await db.Users.FirstOrDefaultAsync(u => u.Slug == slug);
     if (!IsAdmin(ctx, user)) return Results.Unauthorized();
-
     var all      = await db.RsvpEntries.Where(e => e.Slug == slug).ToListAsync();
     var attending = all.Where(e => e.Attending).ToList();
-    return Results.Ok(new StatsResponse(
-        all.Count, attending.Count,
-        all.Count - attending.Count,
-        attending.Sum(e => e.Guests)));
+    return Results.Ok(new StatsResponse(all.Count, attending.Count, all.Count - attending.Count, attending.Sum(e => e.Guests)));
 }).RequireRateLimiting("admin");
 
-// DELETE /api/{slug}/rsvp/{id} (admin)
 app.MapDelete("/api/{slug}/rsvp/{id:int}", async (string slug, int id, HttpContext ctx, AppDbContext db) =>
 {
     var user = await db.Users.FirstOrDefaultAsync(u => u.Slug == slug);
     if (!IsAdmin(ctx, user)) return Results.Unauthorized();
-
     var entry = await db.RsvpEntries.FirstOrDefaultAsync(e => e.Id == id && e.Slug == slug);
     if (entry is null) return Results.NotFound();
     db.RsvpEntries.Remove(entry);
@@ -327,24 +497,21 @@ app.MapDelete("/api/{slug}/rsvp/{id:int}", async (string slug, int id, HttpConte
     return Results.NoContent();
 }).RequireRateLimiting("admin");
 
-// GET /api/{slug}/settings (public)
+// ── Settings endpoints ────────────────────────────────────
+
 app.MapGet("/api/{slug}/settings", async (string slug, AppDbContext db) =>
 {
     var s = await db.SiteSettings.FirstOrDefaultAsync(x => x.Slug == slug);
     if (s is null) return Results.NotFound();
     return Results.Ok(new SettingsPublicDto(
-        s.PhoneNumber, s.Location, s.FamilyText,
-        s.EventTitle, s.EventDate,
-        s.ConfirmColor, s.DeclineColor,
-        s.ImageData != null));
+        s.PhoneNumber, s.Location, s.FamilyText, s.EventTitle, s.EventDate,
+        s.ConfirmColor, s.DeclineColor, s.ImageData != null));
 });
 
-// PUT /api/{slug}/settings (admin)
 app.MapPut("/api/{slug}/settings", async (string slug, HttpContext ctx, SettingsUpdateDto req, AppDbContext db) =>
 {
     var user = await db.Users.FirstOrDefaultAsync(u => u.Slug == slug);
     if (!IsAdmin(ctx, user)) return Results.Unauthorized();
-
     var s = await db.SiteSettings.FirstOrDefaultAsync(x => x.Slug == slug);
     if (s is null) { s = new SiteSettings { Slug = slug }; db.SiteSettings.Add(s); }
     if (req.PhoneNumber  is not null) s.PhoneNumber  = Sanitize(req.PhoneNumber);
@@ -358,22 +525,16 @@ app.MapPut("/api/{slug}/settings", async (string slug, HttpContext ctx, Settings
     return Results.Ok();
 }).RequireRateLimiting("admin");
 
-// POST /api/{slug}/settings/image (admin)
 app.MapPost("/api/{slug}/settings/image", async (string slug, HttpContext ctx, AppDbContext db) =>
 {
     var user = await db.Users.FirstOrDefaultAsync(u => u.Slug == slug);
     if (!IsAdmin(ctx, user)) return Results.Unauthorized();
-
     var form = await ctx.Request.ReadFormAsync();
     var file = form.Files.GetFile("image");
-    if (file is null || file.Length == 0)
-        return Results.BadRequest(new { error = "לא נבחר קובץ" });
-    var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
-    if (!allowed.Contains(file.ContentType.ToLower()))
+    if (file is null || file.Length == 0) return Results.BadRequest(new { error = "לא נבחר קובץ" });
+    if (!new[] { "image/jpeg", "image/png", "image/webp" }.Contains(file.ContentType.ToLower()))
         return Results.BadRequest(new { error = "סוג קובץ לא נתמך (JPG/PNG/WebP)" });
-    if (file.Length > 8 * 1024 * 1024)
-        return Results.BadRequest(new { error = "הקובץ גדול מדי (מקסימום 8MB)" });
-
+    if (file.Length > 8 * 1024 * 1024) return Results.BadRequest(new { error = "הקובץ גדול מדי (מקסימום 8MB)" });
     using var ms = new MemoryStream();
     await file.CopyToAsync(ms);
     var s = await db.SiteSettings.FirstOrDefaultAsync(x => x.Slug == slug);
@@ -384,7 +545,6 @@ app.MapPost("/api/{slug}/settings/image", async (string slug, HttpContext ctx, A
     return Results.Ok(new { success = true });
 }).RequireRateLimiting("admin");
 
-// GET /api/{slug}/settings/image (public)
 app.MapGet("/api/{slug}/settings/image", async (string slug, AppDbContext db) =>
 {
     var s = await db.SiteSettings.FirstOrDefaultAsync(x => x.Slug == slug);

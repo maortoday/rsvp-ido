@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Super Admin — מערכת אישורי הגעה</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #c9943a; --gold-light: #e8c06a;
+      --navy: #0d1b33; --navy-mid: #1a2f52; --navy-light: #243d6a;
+      --green: #27ae60; --green-bg: #e8f8ef;
+      --red: #e74c3c; --red-bg: #fdecea;
+      --purple: #8b5cf6; --purple-bg: #ede9fe;
+      --blue: #3b82f6; --blue-bg: #dbeafe;
+      --border: #e2e8f0; --surface: #f8fafc; --cream: #fdfaf4;
+    }
+    body { font-family: 'Heebo', sans-serif; background: var(--surface); color: #1e293b; min-height: 100vh; }
+
+    /* ── Login ── */
+    #loginScreen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at 30% 20%, #1a2f52 0%, #0d1b33 60%, #060e1f 100%);
+      padding: 20px;
+    }
+    .login-card {
+      background: rgba(255,255,255,.04); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,.1); border-radius: 24px;
+      padding: 48px 40px; max-width: 380px; width: 100%; text-align: center;
+      box-shadow: 0 32px 80px rgba(0,0,0,.6);
+    }
+    .login-badge {
+      display: inline-block; background: linear-gradient(135deg, var(--gold), #f0c060);
+      color: var(--navy); font-size: 11px; font-weight: 800; letter-spacing: .12em;
+      padding: 4px 14px; border-radius: 50px; margin-bottom: 20px;
+    }
+    .login-icon { font-size: 48px; margin-bottom: 14px; }
+    .login-title { font-family: 'Frank Ruhl Libre', serif; font-size: 24px; font-weight: 900; color: white; margin-bottom: 6px; }
+    .login-sub { font-size: 13px; color: rgba(255,255,255,.4); margin-bottom: 32px; }
+    .pw-wrap { position: relative; margin-bottom: 12px; }
+    .login-input {
+      width: 100%; height: 52px; border-radius: 14px;
+      background: rgba(255,255,255,.08); border: 1.5px solid rgba(255,255,255,.12);
+      color: white; font-family: 'Heebo', sans-serif; font-size: 16px;
+      padding: 0 48px 0 16px; direction: ltr; text-align: center; outline: none;
+      transition: border-color .2s, background .2s;
+    }
+    .login-input::placeholder { color: rgba(255,255,255,.3); }
+    .login-input:focus { border-color: var(--gold); background: rgba(255,255,255,.12); }
+    .eye-btn {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: rgba(255,255,255,.4);
+      display: flex; align-items: center; transition: color .15s;
+    }
+    .eye-btn:hover { color: rgba(255,255,255,.7); }
+    .login-error { font-size: 12.5px; color: #f87171; min-height: 20px; margin-bottom: 8px; }
+    .login-btn {
+      width: 100%; height: 52px; border-radius: 14px; border: none;
+      background: linear-gradient(135deg, var(--gold), #a07020);
+      color: white; font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: opacity .15s, transform .1s;
+      box-shadow: 0 8px 24px rgba(201,148,58,.4);
+    }
+    .login-btn:hover { opacity: .92; transform: translateY(-1px); }
+
+    /* ── Dashboard ── */
+    #dashboard { display: none; }
+    .topbar {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      padding: 0 32px; height: 64px; display: flex; align-items: center;
+      justify-content: space-between; box-shadow: 0 2px 16px rgba(0,0,0,.3);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 14px; }
+    .topbar-badge {
+      background: linear-gradient(135deg, var(--gold), #f0c060);
+      color: var(--navy); font-size: 10px; font-weight: 800;
+      letter-spacing: .1em; padding: 3px 10px; border-radius: 50px;
+    }
+    .topbar-title { font-family: 'Frank Ruhl Libre', serif; font-size: 18px; font-weight: 900; color: white; }
+    .topbar-actions { display: flex; gap: 10px; }
+    .topbar-btn {
+      height: 36px; padding: 0 16px; border-radius: 8px;
+      border: 1.5px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07);
+      color: rgba(255,255,255,.8); font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 6px;
+    }
+    .topbar-btn:hover { background: rgba(255,255,255,.14); }
+    .topbar-btn.logout { border-color: rgba(248,113,113,.3); color: #fca5a5; }
+
+    .main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ── Summary stats ── */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px; margin-bottom: 32px;
+    }
+    .summary-card {
+      background: white; border-radius: 18px; padding: 22px 24px;
+      border: 1px solid var(--border); box-shadow: 0 1px 6px rgba(0,0,0,.05);
+      display: flex; align-items: center; gap: 16px;
+    }
+    .summary-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+      flex-shrink: 0;
+    }
+    .summary-icon.users   { background: var(--blue-bg); }
+    .summary-icon.events  { background: var(--purple-bg); }
+    .summary-icon.rsvps   { background: var(--green-bg); }
+    .summary-icon.attend  { background: #fef3c7; }
+    .summary-label { font-size: 12px; font-weight: 700; color: #94a3b8; letter-spacing: .05em; }
+    .summary-value { font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1; margin-top: 2px; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .toolbar-title { font-family: 'Frank Ruhl Libre', serif; font-size: 20px; font-weight: 900; color: #0f172a; flex: 1; }
+    .search-box {
+      height: 40px; border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 0 14px; font-family: 'Heebo', sans-serif; font-size: 14px;
+      outline: none; background: white; min-width: 220px; transition: border-color .2s;
+    }
+    .search-box:focus { border-color: var(--gold); }
+
+    /* ── Event cards grid ── */
+    .events-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px;
+    }
+    .event-card {
+      background: white; border-radius: 18px; border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,.05); overflow: hidden;
+      transition: box-shadow .2s, transform .15s;
+    }
+    .event-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,.1); transform: translateY(-2px); }
+    .card-header {
+      padding: 18px 20px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .card-avatar {
+      width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--navy-light), var(--navy));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Frank Ruhl Libre', serif; font-size: 18px; font-weight: 900; color: var(--gold-light);
+    }
+    .card-title-wrap { flex: 1; min-width: 0; }
+    .card-event-title { font-size: 14px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-slug { font-size: 11.5px; color: #94a3b8; font-family: monospace; margin-top: 2px; }
+    .card-date-badge {
+      font-size: 11px; font-weight: 700; color: var(--gold); background: #fef3c7;
+      padding: 3px 10px; border-radius: 50px; white-space: nowrap; flex-shrink: 0;
+    }
+
+    .card-body { padding: 14px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .card-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .card-row-icon { font-size: 15px; width: 22px; text-align: center; flex-shrink: 0; }
+    .card-row-label { color: #94a3b8; width: 50px; flex-shrink: 0; }
+    .card-row-val { color: #334155; font-weight: 600; }
+
+    .card-stats { display: flex; gap: 12px; padding: 12px 20px; background: var(--surface); border-top: 1px solid var(--border); }
+    .mini-stat { flex: 1; text-align: center; }
+    .mini-stat-val  { font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1; }
+    .mini-stat-val.green { color: var(--green); }
+    .mini-stat-val.gold  { color: var(--gold); }
+    .mini-stat-label { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: .05em; margin-top: 2px; }
+
+    .card-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+    .card-action-btn {
+      flex: 1; height: 34px; border-radius: 8px; border: 1.5px solid var(--border);
+      background: white; font-family: 'Heebo', sans-serif; font-size: 12.5px; font-weight: 600;
+      color: #475569; cursor: pointer; transition: background .15s, border-color .15s;
+      text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .card-action-btn:hover { background: var(--surface); border-color: #cbd5e1; }
+    .card-action-btn.primary { background: var(--navy); border-color: var(--navy); color: white; }
+    .card-action-btn.primary:hover { background: var(--navy-mid); }
+
+    .empty-state { text-align: center; padding: 80px 20px; color: #94a3b8; font-size: 15px; }
+    .empty-state .es-icon { font-size: 56px; margin-bottom: 16px; }
+
+    .loading-spinner {
+      text-align: center; padding: 60px; color: #94a3b8;
+    }
+    .spin-ring {
+      width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: var(--gold);
+      border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .registered-at { font-size: 11px; color: #cbd5e1; padding: 0 20px 12px; }
+  </style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-badge">SUPER ADMIN</div>
+    <div class="login-icon">🛡️</div>
+    <div class="login-title">ניהול מערכת</div>
+    <div class="login-sub">גישה לכל המשתמשים והאירועים</div>
+    <div class="pw-wrap">
+      <input type="password" id="pwInput" class="login-input" placeholder="סיסמת מנהל מערכת"
+        onkeydown="if(event.key==='Enter') doLogin()" />
+      <button type="button" class="eye-btn" onclick="togglePw('pwInput',this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="login-btn" onclick="doLogin()">כניסה</button>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-badge">SUPER ADMIN</div>
+      <div class="topbar-title">ניהול מערכת</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="topbar-btn logout" onclick="logout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        יציאה
+      </button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Summary stats -->
+    <div class="summary-grid" id="summaryGrid">
+      <div class="summary-card"><div class="summary-icon users">👥</div><div><div class="summary-label">USERS</div><div class="summary-value" id="st-users">—</div></div></div>
+      <div class="summary-card"><div class="summary-icon events">🎉</div><div><div class="summary-label">EVENTS</div><div class="summary-value" id="st-events">—</div></div></div>
+      <div class="summary-card"><div class="summary-icon rsvps">📋</div><div><div class="summary-label">TOTAL RSVPs</div><div class="summary-value" id="st-rsvps">—</div></div></div>
+      <div class="summary-card"><div class="summary-icon attend">✅</div><div><div class="summary-label">ATTENDING</div><div class="summary-value" id="st-attend">—</div></div></div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-title">כל האירועים</div>
+      <input class="search-box" type="text" id="searchBox" placeholder="🔍  חיפוש לפי שם, מייל או קוד..." oninput="renderCards()" />
+    </div>
+
+    <!-- Cards -->
+    <div id="cardsContainer">
+      <div class="loading-spinner"><div class="spin-ring"></div>טוען...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = window.location.hostname === 'localhost' ? 'http://localhost:5050/api' : '/api';
+  let superPw = sessionStorage.getItem('superPw') || '';
+  let allUsers = [];
+
+  function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    const showing = inp.type === 'text';
+    inp.type = showing ? 'password' : 'text';
+    btn.innerHTML = showing
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  }
+
+  window.addEventListener('load', () => { superPw ? tryAutoLogin() : null; });
+
+  async function tryAutoLogin() {
+    try { await loadData(); showDashboard(); } catch { superPw = ''; sessionStorage.removeItem('superPw'); }
+  }
+
+  async function doLogin() {
+    const pw  = document.getElementById('pwInput').value;
+    const err = document.getElementById('loginError');
+    if (!pw) return;
+    superPw = pw;
+    try { await loadData(); sessionStorage.setItem('superPw', pw); showDashboard(); }
+    catch { superPw = ''; err.textContent = 'סיסמה שגויה'; }
+  }
+
+  function showDashboard() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display   = 'block';
+  }
+
+  function logout() {
+    superPw = ''; sessionStorage.removeItem('superPw');
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboard').style.display   = 'none';
+  }
+
+  async function loadData() {
+    const [statsRes, usersRes] = await Promise.all([
+      fetch(`${API}/superadmin/stats`, { headers: { 'X-Super-Admin-Password': superPw } }),
+      fetch(`${API}/superadmin/users`, { headers: { 'X-Super-Admin-Password': superPw } })
+    ]);
+    if (statsRes.status === 401 || usersRes.status === 401) throw new Error('401');
+
+    const stats = await statsRes.json();
+    document.getElementById('st-users').textContent  = stats.totalUsers;
+    document.getElementById('st-events').textContent = stats.totalEvents;
+    document.getElementById('st-rsvps').textContent  = stats.totalRsvps;
+    document.getElementById('st-attend').textContent = stats.attending;
+
+    allUsers = await usersRes.json();
+    renderCards();
+  }
+
+  function renderCards() {
+    const q = (document.getElementById('searchBox')?.value || '').trim().toLowerCase();
+    const filtered = allUsers.filter(u =>
+      !q || u.email.includes(q) || u.slug.includes(q) ||
+      (u.eventTitle || '').toLowerCase().includes(q) ||
+      (u.phone || '').includes(q)
+    );
+
+    const container = document.getElementById('cardsContainer');
+    if (!filtered.length) {
+      container.innerHTML = `<div class="empty-state"><div class="es-icon">🔍</div>לא נמצאו אירועים</div>`;
+      return;
+    }
+
+    container.innerHTML = `<div class="events-grid">${filtered.map(u => {
+      const initial = (u.eventTitle || u.slug || '?')[0].toUpperCase();
+      const eventTitle = u.eventTitle || `(${u.slug})`;
+      const dateStr = u.eventDate ? new Date(u.eventDate + 'T12:00:00').toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+      const createdStr = new Date(u.createdAt).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      const adminUrl = `/admin.html?slug=${u.slug}`;
+      const eventUrl = `/index.html?slug=${u.slug}`;
+      return `
+        <div class="event-card">
+          <div class="card-header">
+            <div class="card-avatar">${initial}</div>
+            <div class="card-title-wrap">
+              <div class="card-event-title">${eventTitle}</div>
+              <div class="card-slug">${u.slug}</div>
+            </div>
+            ${u.eventDate ? `<div class="card-date-badge">${dateStr}</div>` : ''}
+          </div>
+          <div class="card-body">
+            <div class="card-row">
+              <div class="card-row-icon">📧</div>
+              <div class="card-row-label">מייל</div>
+              <div class="card-row-val">${u.email}</div>
+            </div>
+            ${u.phone ? `<div class="card-row"><div class="card-row-icon">📱</div><div class="card-row-label">טלפון</div><div class="card-row-val">${u.phone}</div></div>` : ''}
+          </div>
+          <div class="card-stats">
+            <div class="mini-stat">
+              <div class="mini-stat-val">${u.totalRsvps}</div>
+              <div class="mini-stat-label">תשובות</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-val green">${u.attending}</div>
+              <div class="mini-stat-label">מגיעים</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-val gold">${u.totalGuests}</div>
+              <div class="mini-stat-label">אורחים</div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <a class="card-action-btn" href="${eventUrl}" target="_blank">🔗 עמוד האירוע</a>
+            <a class="card-action-btn primary" href="${adminUrl}" target="_blank">⚙️ ניהול</a>
+          </div>
+          <div class="registered-at">נרשם: ${createdStr}</div>
+        </div>`;
+    }).join('')}</div>`;
+  }
+</script>
+</body>
+</html>
