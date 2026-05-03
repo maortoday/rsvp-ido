@@ -1,5 +1,19 @@
 namespace RsvpApi.Dtos;
 
+public record RegisterRequest(
+    string Email,
+    string Password,
+    string Slug,
+    string EventTitle,
+    string EventDate
+);
+
+public record RegisterResponse(string Slug, string RecoveryCode);
+
+public record LoginRequest(string Email, string Password);
+
+public record ResetPasswordRequest(string Email, string RecoveryCode, string NewPassword);
+
 public record SubmitRsvpRequest(
     string FirstName,
     string LastName,
@@ -29,7 +43,10 @@ public record SettingsPublicDto(
     string PhoneNumber,
     string Location,
     string FamilyText,
+    string EventTitle,
+    string EventDate,
     string ConfirmColor,
+    string DeclineColor,
     bool   HasImage
 );
 
@@ -37,5 +54,8 @@ public record SettingsUpdateDto(
     string? PhoneNumber,
     string? Location,
     string? FamilyText,
-    string? ConfirmColor
+    string? EventTitle,
+    string? EventDate,
+    string? ConfirmColor,
+    string? DeclineColor
 );

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מערכת אישורי הגעה — כניסה והרשמה</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold:       #c9943a;
+      --gold-light: #e8c06a;
+      --navy:       #1a2a4a;
+      --navy-mid:   #2d4270;
+      --green:      #2e7d32;
+      --red:        #c62828;
+      --cream:      #fdfaf4;
+      --border:     #e4e9f2;
+    }
+    body {
+      font-family: 'Heebo', sans-serif;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(160deg, #0e1a32 0%, #1a2a4a 100%);
+      padding: 20px;
+    }
+
+    .card {
+      background: var(--cream); border-radius: 24px;
+      width: 100%; max-width: 440px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.55);
+      border: 1px solid rgba(201,148,58,.2);
+      overflow: hidden;
+    }
+
+    .card-logo {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      padding: 28px 24px 22px; text-align: center;
+    }
+    .logo-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: linear-gradient(135deg, #fdf3dc, #fce8b0);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 12px;
+      box-shadow: 0 4px 16px rgba(201,148,58,.35);
+    }
+    .logo-title {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 20px; font-weight: 900; color: var(--gold-light);
+    }
+    .logo-sub { font-size: 12px; color: rgba(255,255,255,.5); margin-top: 4px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex; border-bottom: 2px solid var(--border);
+      background: white;
+    }
+    .tab {
+      flex: 1; padding: 14px; text-align: center;
+      font-size: 14px; font-weight: 700; color: #999;
+      cursor: pointer; transition: color .15s, border-color .15s;
+      border-bottom: 2.5px solid transparent; margin-bottom: -2px;
+    }
+    .tab.active { color: var(--navy); border-bottom-color: var(--gold); }
+    .tab:hover:not(.active) { color: #666; }
+
+    /* Panels */
+    .panel { display: none; padding: 24px; }
+    .panel.active { display: block; }
+
+    .field-group { margin-bottom: 14px; }
+    .field-label {
+      font-size: 11px; font-weight: 700; color: #888;
+      letter-spacing: .06em; margin-bottom: 5px; display: block;
+    }
+    .input {
+      width: 100%; height: 48px;
+      border: 1.8px solid var(--border); border-radius: 12px;
+      padding: 0 14px; font-family: 'Heebo', sans-serif; font-size: 15px;
+      background: white; color: #1e1e1e; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,148,58,.12); }
+    .input.error { border-color: var(--red); }
+    .input-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+    .input-hint.err { color: var(--red); }
+
+    .slug-preview {
+      font-size: 11px; color: #aaa; margin-top: 4px; direction: ltr; text-align: left;
+    }
+    .slug-preview span { color: var(--navy); font-weight: 700; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 400px) { .form-row { grid-template-columns: 1fr; } }
+
+    .btn-primary {
+      width: 100%; height: 50px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, var(--gold) 0%, #a07020 100%);
+      color: white; font-family: 'Heebo', sans-serif;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(201,148,58,.35);
+      transition: opacity .15s, transform .1s; margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: .92; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .error-msg {
+      font-size: 12.5px; color: var(--red); text-align: center;
+      min-height: 20px; margin: 6px 0 2px;
+    }
+    .success-msg {
+      font-size: 12.5px; color: var(--green); text-align: center;
+      margin: 6px 0 2px;
+    }
+
+    .footer-link {
+      text-align: center; padding: 14px 24px;
+      font-size: 12.5px; color: #999; border-top: 1px solid var(--border);
+    }
+    .footer-link a { color: var(--navy-mid); font-weight: 600; text-decoration: none; }
+    .footer-link a:hover { text-decoration: underline; }
+
+    /* Recovery code modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: var(--cream); border-radius: 20px; padding: 32px 28px;
+      max-width: 380px; width: 100%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+      border: 1.5px solid rgba(201,148,58,.3);
+    }
+    .modal-icon { font-size: 40px; margin-bottom: 12px; }
+    .modal-title {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 19px; font-weight: 900; color: var(--navy); margin-bottom: 8px;
+    }
+    .modal-body { font-size: 13px; color: #666; line-height: 1.7; margin-bottom: 20px; }
+    .recovery-code-box {
+      background: #f4f1e8; border: 2px dashed var(--gold);
+      border-radius: 12px; padding: 14px; margin: 14px 0;
+      font-family: monospace; font-size: 22px; font-weight: 700;
+      letter-spacing: 4px; color: var(--navy); cursor: pointer;
+      transition: background .15s;
+    }
+    .recovery-code-box:hover { background: #ece8d8; }
+    .recovery-copy-hint { font-size: 11px; color: #aaa; margin-bottom: 16px; }
+    .modal-warning {
+      background: #fff8e6; border: 1px solid #f0d070;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 12px; color: #7a5a00; margin-bottom: 18px; line-height: 1.5;
+    }
+    .modal-btn {
+      width: 100%; height: 46px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+      color: var(--gold-light); font-family: 'Heebo', sans-serif;
+      font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity .15s;
+    }
+    .modal-btn:hover { opacity: .9; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-logo">
+    <div class="logo-icon">🎉</div>
+    <div class="logo-title">מערכת אישורי הגעה</div>
+    <div class="logo-sub">צרו עמוד RSVP לאירוע שלכם</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-register" onclick="switchTab('register')">הרשמה</div>
+    <div class="tab" id="tab-login"    onclick="switchTab('login')">כניסה</div>
+  </div>
+
+  <!-- Register panel -->
+  <div class="panel active" id="panel-register">
+    <div class="form-row">
+      <div class="field-group">
+        <label class="field-label">שם האירוע</label>
+        <input class="input" type="text" id="r-title" placeholder='בר מצווה של דן' />
+      </div>
+      <div class="field-group">
+        <label class="field-label">תאריך האירוע</label>
+        <input class="input" type="date" id="r-date" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">קוד האירוע (כתובת העמוד)</label>
+      <input class="input" type="text" id="r-slug" placeholder="dan-bar-mitzva"
+        dir="ltr" oninput="updateSlugPreview()" />
+      <div class="slug-preview" id="slugPreview">כתובת העמוד: <span>—</span></div>
+      <div class="input-hint">אותיות אנגלית קטנות, מספרים ומקף בלבד (2-30 תווים)</div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">כתובת מייל</label>
+      <input class="input" type="email" id="r-email" placeholder="you@example.com" dir="ltr" />
+    </div>
+
+    <div class="form-row">
+      <div class="field-group">
+        <label class="field-label">סיסמה</label>
+        <input class="input" type="password" id="r-pass" placeholder="לפחות 6 תווים" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">אימות סיסמה</label>
+        <input class="input" type="password" id="r-pass2" placeholder="חזרו על הסיסמה" />
+      </div>
+    </div>
+
+    <div class="error-msg" id="r-error"></div>
+    <button class="btn-primary" id="r-btn" onclick="doRegister()">צור אירוע</button>
+  </div>
+
+  <!-- Login panel -->
+  <div class="panel" id="panel-login">
+    <div class="field-group">
+      <label class="field-label">כתובת מייל</label>
+      <input class="input" type="email" id="l-email" placeholder="you@example.com"
+        dir="ltr" onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <div class="field-group">
+      <label class="field-label">סיסמה</label>
+      <input class="input" type="password" id="l-pass" placeholder="הסיסמה שלכם"
+        onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <div class="error-msg" id="l-error"></div>
+    <button class="btn-primary" id="l-btn" onclick="doLogin()">כניסה</button>
+  </div>
+
+  <div class="footer-link">
+    <a href="forgot.html">שכחתי סיסמה</a>
+  </div>
+</div>
+
+<!-- Recovery code modal -->
+<div class="modal-overlay" id="recoveryModal">
+  <div class="modal-box">
+    <div class="modal-icon">🔑</div>
+    <div class="modal-title">שמרו את קוד השחזור!</div>
+    <div class="modal-body">זהו הקוד היחיד שיאפשר לכם לאפס סיסמה.<br/>לא ניתן לשחזר אותו מחדש.</div>
+    <div class="recovery-code-box" id="recoveryCodeDisplay" onclick="copyRecoveryCode()" title="לחצו להעתקה"></div>
+    <div class="recovery-copy-hint">לחצו על הקוד להעתקה</div>
+    <div class="modal-warning">⚠️ שמרו את הקוד במקום בטוח לפני שתמשיכו. לאחר סגירת החלון לא יוצג שוב.</div>
+    <button class="modal-btn" onclick="goToAdmin()">הבנתי, שמרתי את הקוד ←</button>
+  </div>
+</div>
+
+<script>
+  const API = window.location.hostname === 'localhost' ? 'http://localhost:5050/api' : '/api';
+  let _registeredSlug = '';
+
+  function switchTab(tab) {
+    ['register','login'].forEach(t => {
+      document.getElementById('tab-'+t).classList.toggle('active', t === tab);
+      document.getElementById('panel-'+t).classList.toggle('active', t === tab);
+    });
+    document.getElementById('r-error').textContent = '';
+    document.getElementById('l-error').textContent = '';
+  }
+
+  function updateSlugPreview() {
+    const val  = document.getElementById('r-slug').value.trim().toLowerCase();
+    const base = window.location.origin + '/index.html?slug=';
+    const span = document.querySelector('#slugPreview span');
+    span.textContent = val ? base + val : '—';
+  }
+
+  async function doRegister() {
+    const btn   = document.getElementById('r-btn');
+    const err   = document.getElementById('r-error');
+    const title = document.getElementById('r-title').value.trim();
+    const date  = document.getElementById('r-date').value.trim();
+    const slug  = document.getElementById('r-slug').value.trim().toLowerCase();
+    const email = document.getElementById('r-email').value.trim();
+    const pass  = document.getElementById('r-pass').value;
+    const pass2 = document.getElementById('r-pass2').value;
+
+    err.textContent = '';
+    if (pass !== pass2) { err.textContent = 'הסיסמאות אינן תואמות'; return; }
+
+    btn.disabled = true; btn.textContent = 'יוצר אירוע...';
+    try {
+      const res = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass, slug, eventTitle: title, eventDate: date })
+      });
+      const data = await res.json();
+      if (!res.ok) { err.textContent = data.error || 'שגיאה בהרשמה'; return; }
+
+      _registeredSlug = data.slug;
+      document.getElementById('recoveryCodeDisplay').textContent = data.recoveryCode;
+      document.getElementById('recoveryModal').classList.add('show');
+    } catch (e) {
+      err.textContent = 'שגיאת רשת, נסו שוב';
+    } finally {
+      btn.disabled = false; btn.textContent = 'צור אירוע';
+    }
+  }
+
+  function copyRecoveryCode() {
+    const code = document.getElementById('recoveryCodeDisplay').textContent;
+    navigator.clipboard.writeText(code).catch(() => {});
+    document.getElementById('recoveryCodeDisplay').textContent = '✓ הועתק!';
+    setTimeout(() => { document.getElementById('recoveryCodeDisplay').textContent = code; }, 1500);
+  }
+
+  function goToAdmin() {
+    sessionStorage.setItem('adminSlug', _registeredSlug);
+    window.location.href = `/admin.html?slug=${_registeredSlug}`;
+  }
+
+  async function doLogin() {
+    const btn   = document.getElementById('l-btn');
+    const err   = document.getElementById('l-error');
+    const email = document.getElementById('l-email').value.trim();
+    const pass  = document.getElementById('l-pass').value;
+
+    err.textContent = '';
+    btn.disabled = true; btn.textContent = 'מתחבר...';
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass })
+      });
+      if (res.status === 401) { err.textContent = 'מייל או סיסמה שגויים'; return; }
+      const data = await res.json();
+      sessionStorage.setItem('adminPw', pass);
+      sessionStorage.setItem('adminSlug', data.slug);
+      window.location.href = `/admin.html?slug=${data.slug}`;
+    } catch {
+      err.textContent = 'שגיאת רשת, נסו שוב';
+    } finally {
+      btn.disabled = false; btn.textContent = 'כניסה';
+    }
+  }
+</script>
+</body>
+</html>
