@@ -426,7 +426,7 @@ app.MapDelete("/api/superadmin/reset-db", async (HttpContext ctx, AppDbContext d
     await db.Database.ExecuteSqlRawAsync("DELETE FROM RsvpEntries");
     await db.Database.ExecuteSqlRawAsync("DELETE FROM Users");
     await db.Database.ExecuteSqlRawAsync("DELETE FROM SiteSettings");
-    await db.Database.ExecuteSqlRawAsync("DELETE FROM sqlite_sequence WHERE name IN ('RsvpEntries','Users','SiteSettings')");
+    try { await db.Database.ExecuteSqlRawAsync("DELETE FROM sqlite_sequence"); } catch { }
     return Results.Ok(new { message = "בסיס הנתונים אופס בהצלחה" });
 }).RequireRateLimiting("admin");
 
