@@ -420,6 +420,16 @@ app.MapGet("/api/superadmin/stats", async (HttpContext ctx, AppDbContext db) =>
     });
 }).RequireRateLimiting("admin");
 
+app.MapDelete("/api/superadmin/reset-db", async (HttpContext ctx, AppDbContext db) =>
+{
+    if (!IsSuperAdmin(ctx)) return Results.Unauthorized();
+    await db.Database.ExecuteSqlRawAsync("DELETE FROM RsvpEntries");
+    await db.Database.ExecuteSqlRawAsync("DELETE FROM Users");
+    await db.Database.ExecuteSqlRawAsync("DELETE FROM SiteSettings");
+    await db.Database.ExecuteSqlRawAsync("DELETE FROM sqlite_sequence WHERE name IN ('RsvpEntries','Users','SiteSettings')");
+    return Results.Ok(new { message = "בסיס הנתונים אופס בהצלחה" });
+}).RequireRateLimiting("admin");
+
 // ── RSVP endpoints ────────────────────────────────────────
 
 app.MapPost("/api/{slug}/rsvp", async (string slug, SubmitRsvpRequest req, AppDbContext db) =>

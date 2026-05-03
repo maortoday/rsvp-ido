@@ -87,7 +87,9 @@
       cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 6px;
     }
     .topbar-btn:hover { background: rgba(255,255,255,.14); }
-    .topbar-btn.logout { border-color: rgba(248,113,113,.3); color: #fca5a5; }
+    .topbar-btn.logout  { border-color: rgba(248,113,113,.3); color: #fca5a5; }
+    .topbar-btn.danger  { border-color: rgba(248,113,113,.5); color: #fca5a5; background: rgba(220,38,38,.12); }
+    .topbar-btn.danger:hover { background: rgba(220,38,38,.25); }
 
     .main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
 
@@ -221,6 +223,10 @@
       <div class="topbar-title">ניהול מערכת</div>
     </div>
     <div class="topbar-actions">
+      <button class="topbar-btn danger" onclick="resetDb()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        איפוס DB
+      </button>
       <button class="topbar-btn logout" onclick="logout()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         יציאה
@@ -282,6 +288,20 @@
   function showDashboard() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('dashboard').style.display   = 'block';
+  }
+
+  async function resetDb() {
+    if (!confirm('⚠️ פעולה זו תמחק את כל המשתמשים, האירועים והאישורים ללא אפשרות שחזור.\n\nהאם אתה בטוח?')) return;
+    if (!confirm('אישור אחרון — למחוק את כל בסיס הנתונים?')) return;
+    try {
+      const res = await fetch('/api/superadmin/reset-db', {
+        method: 'DELETE', headers: { 'X-Super-Admin-Password': superPw }
+      });
+      if (res.status === 401) { alert('שגיאת הרשאה'); return; }
+      if (!res.ok) throw new Error();
+      alert('✅ בסיס הנתונים אופס בהצלחה');
+      loadStats(); loadUsers();
+    } catch { alert('שגיאה באיפוס'); }
   }
 
   function logout() {
