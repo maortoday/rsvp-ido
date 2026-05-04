@@ -122,8 +122,11 @@ app.Use(async (ctx, next) =>
     ctx.Response.Headers["Permissions-Policy"]      = "geolocation=(), camera=(), microphone=()";
     ctx.Response.Headers["Content-Security-Policy"] =
         "default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://maps.google.com; " +
-        "script-src 'self' 'unsafe-inline'; " +
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+        "script-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; " +
+        "script-src-elem 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; " +
+        "frame-src https://accounts.google.com; " +
+        "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com; " +
         "frame-src https://maps.google.com https://www.google.com; " +
         "img-src 'self' data: https:;";
     await next();
