@@ -384,32 +384,30 @@
     document.querySelector('#gsSlugPreview strong').textContent = val ? location.origin + '/index.html?slug=' + val : '—';
   }
 
-  /* ── Google OAuth ── */
-  let _googleTab = 'login';
+  /* ── Google OAuth (classic popup, no FedCM) ── */
+  let tokenClient = null;
+  let _googleTab  = 'login';
+
   function startGoogle(tab) {
     _googleTab = tab;
-    // Use Google Identity Services one-tap / popup
-    window.google?.accounts.id.prompt();
+    tokenClient?.requestAccessToken({ prompt: 'select_account' });
   }
 
-  async function handleGoogleCredential(response) {
-    const credential = response.credential;
+  async function handleGoogleToken(tokenResponse) {
+    if (tokenResponse.error) { alert('שגיאה ב-Google: ' + tokenResponse.error); return; }
     try {
-      const res  = await fetch(`${API}/auth/google`, {
+      const res = await fetch(`${API}/auth/google`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential })
+        body: JSON.stringify({ accessToken: tokenResponse.access_token })
       });
       if (!res.ok) { alert('שגיאה בהתחברות עם Google'); return; }
       const data = await res.json();
-
       if (data.status === 'login') {
-        // Existing user
         _adminToken = data.adminToken;
         sessionStorage.setItem('adminToken', data.adminToken);
         sessionStorage.setItem('adminSlug', data.slug);
         location.href = `/admin.html?slug=${data.slug}`;
       } else if (data.status === 'new_user') {
-        // New user — show setup panel
         document.getElementById('gs-email').value = data.email;
         showPanel('panel-google-setup');
       }
@@ -508,14 +506,14 @@
     finally { btn.disabled = false; btn.textContent = 'כניסה לניהול'; }
   }
 
-  /* ── Init Google GSI ── */
+  /* ── Init Google GSI (oauth2 token client — no FedCM) ── */
   async function initGoogle() {
     const cfg = await fetch(`${API}/config`).then(r => r.json()).catch(() => ({}));
     if (!cfg.googleClientId) return;
-    window.google?.accounts.id.initialize({
+    tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: cfg.googleClientId,
-      callback:  handleGoogleCredential,
-      ux_mode:   'popup'
+      scope:     'email profile openid',
+      callback:  handleGoogleToken
     });
     document.getElementById('google-register-wrap').style.display = 'block';
     document.getElementById('google-login-wrap').style.display    = 'block';

@@ -125,9 +125,8 @@ app.Use(async (ctx, next) =>
         "script-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; " +
         "script-src-elem 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; " +
-        "frame-src https://accounts.google.com; " +
-        "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com; " +
-        "frame-src https://maps.google.com https://www.google.com; " +
+        "frame-src https://accounts.google.com https://maps.google.com https://www.google.com; " +
+        "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com; " +
         "img-src 'self' data: https:;";
     await next();
 });
@@ -240,20 +239,38 @@ app.MapGet("/api/config", () => Results.Ok(new
 
 app.MapPost("/api/auth/google", async (GoogleAuthRequest req, AppDbContext db) =>
 {
-    if (string.IsNullOrEmpty(req.Credential)) return Results.BadRequest(new { error = "חסר credential" });
+    string email = "";
     try
     {
         using var http = new HttpClient();
         http.Timeout = TimeSpan.FromSeconds(10);
-        var resp = await http.GetAsync(
-            $"https://oauth2.googleapis.com/tokeninfo?id_token={Uri.EscapeDataString(req.Credential)}");
-        if (!resp.IsSuccessStatusCode) return Results.Unauthorized();
 
-        var info  = await resp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-        var email = info.GetProperty("email").GetString()?.ToLower().Trim() ?? "";
-        var aud   = info.TryGetProperty("aud", out var audEl) ? audEl.GetString() ?? "" : "";
+        if (!string.IsNullOrEmpty(req.AccessToken))
+        {
+            // OAuth2 access token flow (no FedCM)
+            http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", req.AccessToken);
+            var resp = await http.GetAsync("https://www.googleapis.com/oauth2/v3/userinfo");
+            if (!resp.IsSuccessStatusCode) return Results.Unauthorized();
+            var info = await resp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+            email = info.TryGetProperty("email", out var e) ? e.GetString()?.ToLower().Trim() ?? "" : "";
+        }
+        else if (!string.IsNullOrEmpty(req.Credential))
+        {
+            // ID token flow (legacy / fallback)
+            var resp = await http.GetAsync(
+                $"https://oauth2.googleapis.com/tokeninfo?id_token={Uri.EscapeDataString(req.Credential)}");
+            if (!resp.IsSuccessStatusCode) return Results.Unauthorized();
+            var info = await resp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+            email = info.GetProperty("email").GetString()?.ToLower().Trim() ?? "";
+            var aud = info.TryGetProperty("aud", out var audEl) ? audEl.GetString() ?? "" : "";
+            if (!string.IsNullOrEmpty(googleClientId) && aud != googleClientId) return Results.Unauthorized();
+        }
+        else
+        {
+            return Results.BadRequest(new { error = "חסר credential" });
+        }
 
-        if (!string.IsNullOrEmpty(googleClientId) && aud != googleClientId) return Results.Unauthorized();
         if (string.IsNullOrEmpty(email)) return Results.Unauthorized();
 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);

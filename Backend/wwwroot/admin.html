@@ -656,24 +656,30 @@
     return h;
   }
 
-  /* ── Google OAuth ── */
+  /* ── Google OAuth (classic popup, no FedCM) ── */
+  let tokenClient = null;
+
   async function initGoogle() {
     const cfg = await fetch('/api/config').then(r => r.json()).catch(() => ({}));
     if (!cfg.googleClientId) return;
-    document.getElementById('googleLoginBtn').style.display  = 'flex';
-    document.getElementById('loginDivider').style.display    = 'flex';
-    window.google?.accounts.id.initialize({
+    document.getElementById('googleLoginBtn').style.display = 'flex';
+    document.getElementById('loginDivider').style.display   = 'flex';
+    tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: cfg.googleClientId,
-      callback:  handleGoogleCredential,
-      ux_mode:   'popup'
+      scope:     'email profile openid',
+      callback:  handleGoogleToken
     });
   }
 
-  async function handleGoogleCredential(response) {
+  async function handleGoogleToken(tokenResponse) {
+    if (tokenResponse.error) {
+      document.getElementById('loginError').textContent = 'שגיאה ב-Google: ' + tokenResponse.error;
+      return;
+    }
     try {
-      const res  = await fetch('/api/auth/google', {
+      const res = await fetch('/api/auth/google', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential })
+        body: JSON.stringify({ accessToken: tokenResponse.access_token })
       });
       if (!res.ok) { document.getElementById('loginError').textContent = 'שגיאה בהתחברות עם Google'; return; }
       const data = await res.json();
@@ -689,7 +695,7 @@
     } catch { document.getElementById('loginError').textContent = 'שגיאת רשת'; }
   }
 
-  function startGoogle() { window.google?.accounts.id.prompt(); }
+  function startGoogle() { tokenClient?.requestAccessToken({ prompt: 'select_account' }); }
 
   /* ── WhatsApp link builder ── */
   function buildWaLink(entry) {
