@@ -25,8 +25,9 @@ var smtpFrom        = builder.Configuration["SmtpFrom"]            ?? smtpUser;
 var appOrigin           = builder.Configuration["AppOrigin"]           ?? "";
 var googleClientId      = builder.Configuration["GoogleClientId"]      ?? "";
 var facebookAppId       = builder.Configuration["FacebookAppId"]        ?? "";
-var ultraMsgInstanceId  = builder.Configuration["UltraMsgInstanceId"]   ?? "";
-var ultraMsgToken       = builder.Configuration["UltraMsgToken"]        ?? "";
+var twilioAccountSid    = builder.Configuration["TwilioAccountSid"]     ?? "";
+var twilioAuthToken     = builder.Configuration["TwilioAuthToken"]      ?? "";
+var twilioWhatsAppFrom  = builder.Configuration["TwilioWhatsAppFrom"]   ?? "";
 
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlite("Data Source=rsvp.db"));
@@ -232,20 +233,25 @@ async Task SendEmailAsync(string to, string subject, string htmlBody)
 
 async Task SendWhatsAppAsync(string phone, string message)
 {
-    if (string.IsNullOrEmpty(ultraMsgInstanceId) || string.IsNullOrEmpty(ultraMsgToken)) return;
+    if (string.IsNullOrEmpty(twilioAccountSid) || string.IsNullOrEmpty(twilioAuthToken) ||
+        string.IsNullOrEmpty(twilioWhatsAppFrom)) return;
     try
     {
         var normalized = System.Text.RegularExpressions.Regex.Replace(phone, @"\D", "");
         if (normalized.StartsWith("0")) normalized = "972" + normalized[1..];
         using var http = new HttpClient();
         http.Timeout = TimeSpan.FromSeconds(15);
+        var creds = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{twilioAccountSid}:{twilioAuthToken}"));
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", creds);
         var content = new FormUrlEncodedContent(new[]
         {
-            new KeyValuePair<string,string>("token", ultraMsgToken),
-            new KeyValuePair<string,string>("to",    normalized),
-            new KeyValuePair<string,string>("body",  message),
+            new KeyValuePair<string,string>("From", twilioWhatsAppFrom),
+            new KeyValuePair<string,string>("To",   $"whatsapp:+{normalized}"),
+            new KeyValuePair<string,string>("Body", message),
         });
-        await http.PostAsync($"https://api.ultramsg.com/{ultraMsgInstanceId}/messages/chat", content);
+        await http.PostAsync(
+            $"https://api.twilio.com/2010-04-01/Accounts/{twilioAccountSid}/Messages.json", content);
     }
     catch { }
 }
@@ -447,39 +453,6 @@ app.MapPost("/api/auth/reset-email", async (ResetEmailRequest req, AppDbContext 
     user.PasswordHash    = HashPassword(req.NewPassword);
     user.EmailResetToken = "";
     user.EmailResetExpiry = null;
-    await db.SaveChangesAsync();
-    return Results.Ok(new { success = true });
-}).RequireRateLimiting("auth");
-
-// SMS reset
-app.MapPost("/api/auth/forgot-sms", async (ForgotSmsRequest req, AppDbContext db) =>
-{
-    var email = req.Email?.ToLower().Trim() ?? "";
-    var user  = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
-    if (user is not null && !string.IsNullOrEmpty(user.PhoneNumber))
-    {
-        var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
-        user.SmsResetCode   = HashPassword(code);
-        user.SmsResetExpiry = DateTime.UtcNow.AddMinutes(10);
-        await db.SaveChangesAsync();
-        // SMS via WhatsApp removed — user receives code via email or can use recovery code
-    }
-    return Results.Ok(new { message = "אם המייל קיים ומשויך למספר טלפון, נשלח SMS" });
-}).RequireRateLimiting("auth");
-
-app.MapPost("/api/auth/reset-sms", async (ResetSmsRequest req, AppDbContext db) =>
-{
-    var email = req.Email?.ToLower().Trim() ?? "";
-    var user  = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
-    if (user is null || user.SmsResetExpiry < DateTime.UtcNow || string.IsNullOrEmpty(user.SmsResetCode))
-        return Results.BadRequest(new { error = "הקוד לא תקין או פג תוקף" });
-    if (!VerifyPassword(req.Code ?? "", user.SmsResetCode))
-        return Results.BadRequest(new { error = "הקוד שגוי" });
-    if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < 6)
-        return Results.BadRequest(new { error = "הסיסמה חייבת להיות לפחות 6 תווים" });
-    user.PasswordHash  = HashPassword(req.NewPassword);
-    user.SmsResetCode  = "";
-    user.SmsResetExpiry = null;
     await db.SaveChangesAsync();
     return Results.Ok(new { success = true });
 }).RequireRateLimiting("auth");
