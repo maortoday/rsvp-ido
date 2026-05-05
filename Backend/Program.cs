@@ -25,6 +25,8 @@ var smtpFrom        = builder.Configuration["SmtpFrom"]            ?? smtpUser;
 var appOrigin           = builder.Configuration["AppOrigin"]           ?? "";
 var googleClientId      = builder.Configuration["GoogleClientId"]      ?? "";
 var facebookAppId       = builder.Configuration["FacebookAppId"]        ?? "";
+var twitterClientId     = builder.Configuration["TwitterClientId"]      ?? "";
+var twitterClientSecret = builder.Configuration["TwitterClientSecret"]  ?? "";
 var twilioAccountSid    = builder.Configuration["TwilioAccountSid"]     ?? "";
 var twilioAuthToken     = builder.Configuration["TwilioAuthToken"]      ?? "";
 var twilioWhatsAppFrom  = builder.Configuration["TwilioWhatsAppFrom"]   ?? "";
@@ -132,7 +134,7 @@ app.Use(async (ctx, next) =>
         "script-src-elem 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; " +
         "frame-src https://accounts.google.com https://maps.google.com https://www.google.com https://www.facebook.com; " +
-        "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://graph.facebook.com; " +
+        "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://graph.facebook.com https://api.twitter.com; " +
         "img-src 'self' data: https:;";
     await next();
 });
@@ -264,7 +266,8 @@ static RsvpResponse ToResponse(RsvpEntry e) =>
 app.MapGet("/api/config", () => Results.Ok(new
 {
     googleClientId  = string.IsNullOrEmpty(googleClientId)  ? null : googleClientId,
-    facebookAppId   = string.IsNullOrEmpty(facebookAppId)   ? null : facebookAppId
+    facebookAppId   = string.IsNullOrEmpty(facebookAppId)   ? null : facebookAppId,
+    twitterClientId = string.IsNullOrEmpty(twitterClientId) ? null : twitterClientId
 }));
 
 // ── Auth ──────────────────────────────────────────────────
@@ -336,6 +339,61 @@ app.MapPost("/api/auth/facebook", async (FacebookAuthRequest req, AppDbContext d
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user is null)
             return Results.Ok(new { status = "new_user", email });
+
+        var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        user.SessionToken  = sessionToken;
+        user.SessionExpiry = DateTime.UtcNow.AddHours(12);
+        await db.SaveChangesAsync();
+        return Results.Ok(new { status = "login", slug = user.Slug, adminToken = sessionToken });
+    }
+    catch { return Results.Unauthorized(); }
+}).RequireRateLimiting("auth");
+
+app.MapPost("/api/auth/twitter", async (TwitterAuthRequest req, AppDbContext db) =>
+{
+    if (string.IsNullOrEmpty(twitterClientId) || string.IsNullOrEmpty(twitterClientSecret))
+        return Results.BadRequest(new { error = "Twitter not configured" });
+    try
+    {
+        using var http = new HttpClient();
+        http.Timeout = TimeSpan.FromSeconds(15);
+
+        // Exchange code for access token
+        var creds = Convert.ToBase64String(
+            System.Text.Encoding.UTF8.GetBytes($"{twitterClientId}:{twitterClientSecret}"));
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", creds);
+
+        var tokenContent = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string,string>("grant_type",    "authorization_code"),
+            new KeyValuePair<string,string>("code",          req.Code),
+            new KeyValuePair<string,string>("redirect_uri",  req.RedirectUri),
+            new KeyValuePair<string,string>("client_id",     twitterClientId),
+            new KeyValuePair<string,string>("code_verifier", req.CodeVerifier),
+        });
+        var tokenResp = await http.PostAsync("https://api.twitter.com/2/oauth2/token", tokenContent);
+        if (!tokenResp.IsSuccessStatusCode) return Results.Unauthorized();
+
+        var tokenJson    = await tokenResp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var accessToken  = tokenJson.GetProperty("access_token").GetString() ?? "";
+
+        // Get user info
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        var userResp = await http.GetAsync("https://api.twitter.com/2/users/me?user.fields=id,name,username");
+        if (!userResp.IsSuccessStatusCode) return Results.Unauthorized();
+
+        var userJson   = await userResp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var twitterId  = userJson.GetProperty("data").GetProperty("id").GetString() ?? "";
+        if (string.IsNullOrEmpty(twitterId)) return Results.Unauthorized();
+
+        // Use synthetic email keyed to Twitter ID
+        var syntheticEmail = $"twitter:{twitterId}";
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == syntheticEmail);
+        if (user is null)
+            return Results.Ok(new { status = "new_user", email = syntheticEmail });
 
         var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         user.SessionToken  = sessionToken;

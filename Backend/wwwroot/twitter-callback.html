@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>Twitter Auth</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center;
+           min-height: 100vh; background: #0d1117; color: #fff; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div>מאמת עם Twitter...</div>
+  <script>
+    (async function() {
+      const params      = new URLSearchParams(location.search);
+      const code        = params.get('code');
+      const state       = params.get('state');
+      const error       = params.get('error');
+      const storedState = sessionStorage.getItem('tw_state');
+      const codeVerifier= sessionStorage.getItem('tw_cv');
+      sessionStorage.removeItem('tw_state');
+      sessionStorage.removeItem('tw_cv');
+
+      const post = d => {
+        window.opener?.postMessage({ type: 'tw-auth', ...d }, location.origin);
+        window.close();
+      };
+
+      if (error)                return post({ error });
+      if (state !== storedState) return post({ error: 'state_mismatch' });
+      if (!code)                return post({ error: 'no_code' });
+
+      try {
+        const res  = await fetch('/api/auth/twitter', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code, codeVerifier,
+            redirectUri: location.origin + '/twitter-callback.html'
+          })
+        });
+        const data = await res.json();
+        post(res.ok ? { data } : { error: data.error || 'auth_failed' });
+      } catch {
+        post({ error: 'network' });
+      }
+    })();
+  </script>
+</body>
+</html>

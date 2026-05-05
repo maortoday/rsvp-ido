@@ -195,6 +195,10 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
         המשך עם Facebook
       </button>
+      <button class="google-btn" id="tw-register-btn" onclick="startTwitter('register')" style="display:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L2.25 2.25h6.998l4.256 5.626zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        המשך עם X (Twitter)
+      </button>
       <div class="divider"><div class="divider-line"></div><div class="divider-text">או עם מייל וסיסמה</div><div class="divider-line"></div></div>
     </div>
 
@@ -270,6 +274,10 @@
       <button class="google-btn" id="fb-login-btn" onclick="startFacebook('login')" style="display:none">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
         כניסה עם Facebook
+      </button>
+      <button class="google-btn" id="tw-login-btn" onclick="startTwitter('login')" style="display:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L2.25 2.25h6.998l4.256 5.626zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        כניסה עם X (Twitter)
       </button>
       <div class="divider"><div class="divider-line"></div><div class="divider-text">או עם מייל וסיסמה</div><div class="divider-line"></div></div>
     </div>
@@ -384,6 +392,54 @@
   function updateSlugPreviewGs() {
     const val = document.getElementById('gs-slug').value.trim().toLowerCase();
     document.querySelector('#gsSlugPreview strong').textContent = val ? location.origin + '/index.html?slug=' + val : '—';
+  }
+
+  /* ── Twitter / X OAuth (PKCE popup) ── */
+  let _twTab = 'login';
+
+  function twRandB64() {
+    return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))))
+      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  }
+  async function twChallenge(verifier) {
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    return btoa(String.fromCharCode(...new Uint8Array(hash)))
+      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  }
+
+  async function startTwitter(tab) {
+    _twTab = tab;
+    const verifier   = twRandB64();
+    const state      = twRandB64();
+    const challenge  = await twChallenge(verifier);
+    sessionStorage.setItem('tw_state', state);
+    sessionStorage.setItem('tw_cv',    verifier);
+    const params = new URLSearchParams({
+      response_type: 'code', client_id: _twClientId,
+      redirect_uri:  location.origin + '/twitter-callback.html',
+      scope: 'tweet.read users.read', state,
+      code_challenge: challenge, code_challenge_method: 'S256'
+    });
+    const popup = window.open('https://twitter.com/i/oauth2/authorize?' + params,
+      'tw-auth', 'width=600,height=700,left=200,top=100');
+    window.addEventListener('message', async function handler(e) {
+      if (e.origin !== location.origin || e.data?.type !== 'tw-auth') return;
+      window.removeEventListener('message', handler);
+      if (popup && !popup.closed) popup.close();
+      if (e.data.error) { alert('שגיאה בהתחברות עם Twitter: ' + e.data.error); return; }
+      await handleTwitterResult(e.data.data);
+    });
+  }
+
+  async function handleTwitterResult(data) {
+    if (data.status === 'login') {
+      sessionStorage.setItem('adminToken', data.adminToken);
+      sessionStorage.setItem('adminSlug',  data.slug);
+      location.href = `/admin.html?slug=${data.slug}`;
+    } else if (data.status === 'new_user') {
+      document.getElementById('gs-email').value = data.email;
+      showPanel('panel-google-setup');
+    }
   }
 
   /* ── Facebook OAuth ── */
@@ -527,10 +583,13 @@
   }
 
   /* ── Init social auth ── */
+  let _twClientId = '';
+
   async function initSocial() {
     const cfg = await fetch(`${API}/config`).then(r => r.json()).catch(() => ({}));
-    const hasGoogle = !!cfg.googleClientId;
-    const hasFb     = !!cfg.facebookAppId;
+    const hasGoogle  = !!cfg.googleClientId;
+    const hasFb      = !!cfg.facebookAppId;
+    const hasTwitter = !!cfg.twitterClientId;
 
     if (hasGoogle) {
       google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: handleGoogleCredential });
@@ -554,7 +613,13 @@
       document.getElementById('fb-login-btn').style.display    = 'flex';
     }
 
-    if (hasGoogle || hasFb) {
+    if (hasTwitter) {
+      _twClientId = cfg.twitterClientId;
+      document.getElementById('tw-register-btn').style.display = 'flex';
+      document.getElementById('tw-login-btn').style.display    = 'flex';
+    }
+
+    if (hasGoogle || hasFb || hasTwitter) {
       document.getElementById('google-register-wrap').style.display = 'block';
       document.getElementById('google-login-wrap').style.display    = 'block';
     }

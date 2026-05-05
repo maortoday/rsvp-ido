@@ -73,3 +73,4 @@ public record SettingsUpdateDto(
 );
 
 public record FacebookAuthRequest(string AccessToken);
+public record TwitterAuthRequest(string Code, string CodeVerifier, string RedirectUri);

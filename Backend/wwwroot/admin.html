@@ -370,6 +370,10 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
       כניסה עם Facebook
     </button>
+    <button class="google-btn" id="twLoginBtn" onclick="startTwitter()" style="display:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L2.25 2.25h6.998l4.256 5.626zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      כניסה עם X (Twitter)
+    </button>
     <div class="divider" id="loginDivider" style="display:none">
       <div class="divider-line"></div><div class="divider-text">או עם סיסמה</div><div class="divider-line"></div>
     </div>
@@ -693,9 +697,59 @@
         s.src = 'https://connect.facebook.net/he_IL/sdk.js';
         s.async = true; document.head.appendChild(s);
       });
-      document.getElementById('fbLoginBtn').style.display  = 'flex';
+      document.getElementById('fbLoginBtn').style.display   = 'flex';
       document.getElementById('loginDivider').style.display = 'flex';
     }
+
+    if (cfg.twitterClientId) {
+      _twClientId = cfg.twitterClientId;
+      document.getElementById('twLoginBtn').style.display   = 'flex';
+      document.getElementById('loginDivider').style.display = 'flex';
+    }
+  }
+
+  /* ── Twitter / X OAuth (PKCE popup) ── */
+  let _twClientId = '';
+
+  function twRandB64() {
+    return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))))
+      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  }
+  async function twChallenge(v) {
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+    return btoa(String.fromCharCode(...new Uint8Array(hash)))
+      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  }
+
+  async function startTwitter() {
+    const verifier  = twRandB64();
+    const state     = twRandB64();
+    const challenge = await twChallenge(verifier);
+    sessionStorage.setItem('tw_state', state);
+    sessionStorage.setItem('tw_cv',    verifier);
+    const params = new URLSearchParams({
+      response_type: 'code', client_id: _twClientId,
+      redirect_uri:  location.origin + '/twitter-callback.html',
+      scope: 'tweet.read users.read', state,
+      code_challenge: challenge, code_challenge_method: 'S256'
+    });
+    const popup = window.open('https://twitter.com/i/oauth2/authorize?' + params,
+      'tw-auth', 'width=600,height=700,left=200,top=100');
+    window.addEventListener('message', async function handler(e) {
+      if (e.origin !== location.origin || e.data?.type !== 'tw-auth') return;
+      window.removeEventListener('message', handler);
+      if (popup && !popup.closed) popup.close();
+      if (e.data.error) { document.getElementById('loginError').textContent = 'שגיאה ב-Twitter: ' + e.data.error; return; }
+      const data = e.data.data;
+      if (data.status === 'login') {
+        adminToken = data.adminToken;
+        sessionStorage.setItem('adminToken', adminToken);
+        sessionStorage.setItem('adminSlug',  data.slug);
+        await loadStats(); showDashboard();
+      } else {
+        document.getElementById('loginError').textContent = 'חשבון Twitter זה אינו רשום במערכת. אנא הירשמו תחילה.';
+      }
+    });
   }
 
   function startFacebook() {
