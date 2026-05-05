@@ -22,8 +22,11 @@ var smtpPort        = int.TryParse(builder.Configuration["SmtpPort"], out var sp
 var smtpUser        = builder.Configuration["SmtpUser"]            ?? "";
 var smtpPass        = builder.Configuration["SmtpPass"]            ?? "";
 var smtpFrom        = builder.Configuration["SmtpFrom"]            ?? smtpUser;
-var appOrigin       = builder.Configuration["AppOrigin"]           ?? "";
-var googleClientId  = builder.Configuration["GoogleClientId"]      ?? "";
+var appOrigin           = builder.Configuration["AppOrigin"]           ?? "";
+var googleClientId      = builder.Configuration["GoogleClientId"]      ?? "";
+var facebookAppId       = builder.Configuration["FacebookAppId"]        ?? "";
+var ultraMsgInstanceId  = builder.Configuration["UltraMsgInstanceId"]   ?? "";
+var ultraMsgToken       = builder.Configuration["UltraMsgToken"]        ?? "";
 
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlite("Data Source=rsvp.db"));
@@ -105,6 +108,8 @@ using (var scope = app.Services.CreateScope())
         "ALTER TABLE Users        ADD COLUMN \"SessionExpiry\"     TEXT",
         "ALTER TABLE SiteSettings ADD COLUMN \"Slug\"              TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE SiteSettings ADD COLUMN \"WhatsAppTemplate\"  TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE SiteSettings ADD COLUMN \"ConfirmMessage\"    TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE SiteSettings ADD COLUMN \"DeclineMessage\"    TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE SiteSettings ADD COLUMN \"DeclineColor\"     TEXT NOT NULL DEFAULT '#b0b8c4'",
         "ALTER TABLE SiteSettings ADD COLUMN \"EventTitle\"       TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE SiteSettings ADD COLUMN \"EventDate\"        TEXT NOT NULL DEFAULT ''",
@@ -125,8 +130,8 @@ app.Use(async (ctx, next) =>
         "script-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; " +
         "script-src-elem 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; " +
-        "frame-src https://accounts.google.com https://maps.google.com https://www.google.com; " +
-        "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com; " +
+        "frame-src https://accounts.google.com https://maps.google.com https://www.google.com https://www.facebook.com; " +
+        "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://graph.facebook.com; " +
         "img-src 'self' data: https:;";
     await next();
 });
@@ -225,6 +230,26 @@ async Task SendEmailAsync(string to, string subject, string htmlBody)
 }
 
 
+async Task SendWhatsAppAsync(string phone, string message)
+{
+    if (string.IsNullOrEmpty(ultraMsgInstanceId) || string.IsNullOrEmpty(ultraMsgToken)) return;
+    try
+    {
+        var normalized = System.Text.RegularExpressions.Regex.Replace(phone, @"\D", "");
+        if (normalized.StartsWith("0")) normalized = "972" + normalized[1..];
+        using var http = new HttpClient();
+        http.Timeout = TimeSpan.FromSeconds(15);
+        var content = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string,string>("token", ultraMsgToken),
+            new KeyValuePair<string,string>("to",    normalized),
+            new KeyValuePair<string,string>("body",  message),
+        });
+        await http.PostAsync($"https://api.ultramsg.com/{ultraMsgInstanceId}/messages/chat", content);
+    }
+    catch { }
+}
+
 static RsvpResponse ToResponse(RsvpEntry e) =>
     new(e.Id, e.FirstName, e.LastName, e.Phone, e.Guests, e.Attending, e.CreatedAt);
 
@@ -232,7 +257,8 @@ static RsvpResponse ToResponse(RsvpEntry e) =>
 
 app.MapGet("/api/config", () => Results.Ok(new
 {
-    googleClientId = string.IsNullOrEmpty(googleClientId) ? null : googleClientId
+    googleClientId  = string.IsNullOrEmpty(googleClientId)  ? null : googleClientId,
+    facebookAppId   = string.IsNullOrEmpty(facebookAppId)   ? null : facebookAppId
 }));
 
 // ── Auth ──────────────────────────────────────────────────
@@ -272,6 +298,34 @@ app.MapPost("/api/auth/google", async (GoogleAuthRequest req, AppDbContext db) =
         }
 
         if (string.IsNullOrEmpty(email)) return Results.Unauthorized();
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user is null)
+            return Results.Ok(new { status = "new_user", email });
+
+        var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        user.SessionToken  = sessionToken;
+        user.SessionExpiry = DateTime.UtcNow.AddHours(12);
+        await db.SaveChangesAsync();
+        return Results.Ok(new { status = "login", slug = user.Slug, adminToken = sessionToken });
+    }
+    catch { return Results.Unauthorized(); }
+}).RequireRateLimiting("auth");
+
+app.MapPost("/api/auth/facebook", async (FacebookAuthRequest req, AppDbContext db) =>
+{
+    if (string.IsNullOrEmpty(req.AccessToken)) return Results.BadRequest(new { error = "חסר token" });
+    try
+    {
+        using var http = new HttpClient();
+        http.Timeout = TimeSpan.FromSeconds(10);
+        var resp = await http.GetAsync(
+            $"https://graph.facebook.com/me?fields=email&access_token={Uri.EscapeDataString(req.AccessToken)}");
+        if (!resp.IsSuccessStatusCode) return Results.Unauthorized();
+        var info  = await resp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var email = info.TryGetProperty("email", out var e) ? e.GetString()?.ToLower().Trim() ?? "" : "";
+        if (string.IsNullOrEmpty(email))
+            return Results.BadRequest(new { error = "לא נמצא אימייל בחשבון Facebook" });
 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user is null)
@@ -512,6 +566,20 @@ app.MapPost("/api/{slug}/rsvp", async (string slug, SubmitRsvpRequest req, AppDb
     db.RsvpEntries.Add(entry);
     await db.SaveChangesAsync();
 
+    if (entry.Attending)
+    {
+        var st = await db.SiteSettings.FirstOrDefaultAsync(x => x.Slug == slug);
+        if (st is not null && !string.IsNullOrEmpty(st.WhatsAppTemplate))
+        {
+            var msg = st.WhatsAppTemplate
+                .Replace("{שם}",      entry.FirstName)
+                .Replace("{שם_מלא}", $"{entry.FirstName} {entry.LastName}")
+                .Replace("{אורחים}",  entry.Guests.ToString())
+                .Replace("{אירוע}",   st.EventTitle)
+                .Replace("{תאריך}",   st.EventDate);
+            _ = Task.Run(() => SendWhatsAppAsync(entry.Phone, msg));
+        }
+    }
 
     return Results.Created($"/api/{slug}/rsvp/{entry.Id}", ToResponse(entry));
 }).RequireRateLimiting("rsvp-submit");
@@ -562,7 +630,8 @@ app.MapGet("/api/{slug}/settings", async (string slug, HttpContext ctx, AppDbCon
     var user      = await db.Users.FirstOrDefaultAsync(u => u.Slug == slug);
     return Results.Ok(new SettingsPublicDto(
         s.PhoneNumber, s.Location, s.FamilyText, s.EventTitle, s.EventDate,
-        s.ConfirmColor, s.DeclineColor, s.ImageData != null, s.WhatsAppTemplate));
+        s.ConfirmColor, s.DeclineColor, s.ImageData != null, s.WhatsAppTemplate,
+        s.ConfirmMessage, s.DeclineMessage));
 });
 
 app.MapPut("/api/{slug}/settings", async (string slug, HttpContext ctx, SettingsUpdateDto req, AppDbContext db) =>
@@ -579,6 +648,8 @@ app.MapPut("/api/{slug}/settings", async (string slug, HttpContext ctx, Settings
     if (req.ConfirmColor      is not null) s.ConfirmColor      = req.ConfirmColor;
     if (req.DeclineColor      is not null) s.DeclineColor      = req.DeclineColor;
     if (req.WhatsAppTemplate  is not null) s.WhatsAppTemplate  = req.WhatsAppTemplate.Trim();
+    if (req.ConfirmMessage    is not null) s.ConfirmMessage    = req.ConfirmMessage.Trim();
+    if (req.DeclineMessage    is not null) s.DeclineMessage    = req.DeclineMessage.Trim();
     await db.SaveChangesAsync();
     return Results.Ok();
 }).RequireRateLimiting("admin");

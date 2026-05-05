@@ -12,6 +12,8 @@ public class SiteSettings
     public string  ConfirmColor  { get; set; } = "#3a6b47";
     public string  DeclineColor  { get; set; } = "#b0b8c4";
     public string  WhatsAppTemplate { get; set; } = "";
+    public string  ConfirmMessage   { get; set; } = "";
+    public string  DeclineMessage   { get; set; } = "";
     public byte[]? ImageData        { get; set; }
     public string  ImageMimeType    { get; set; } = "image/jpeg";
 }

@@ -190,7 +190,11 @@
 
     <!-- Google sign-in -->
     <div id="google-register-wrap" style="display:none">
-      <div id="g-register-btn" style="display:flex;justify-content:center;margin-bottom:4px"></div>
+      <div id="g-register-btn" style="display:flex;justify-content:center;margin-bottom:8px"></div>
+      <button class="google-btn" id="fb-register-btn" onclick="startFacebook('register')" style="display:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+        המשך עם Facebook
+      </button>
       <div class="divider"><div class="divider-line"></div><div class="divider-text">או עם מייל וסיסמה</div><div class="divider-line"></div></div>
     </div>
 
@@ -262,7 +266,11 @@
   <!-- ── Login ── -->
   <div class="panel" id="panel-login">
     <div id="google-login-wrap" style="display:none">
-      <div id="g-login-btn" style="display:flex;justify-content:center;margin-bottom:4px"></div>
+      <div id="g-login-btn" style="display:flex;justify-content:center;margin-bottom:8px"></div>
+      <button class="google-btn" id="fb-login-btn" onclick="startFacebook('login')" style="display:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+        כניסה עם Facebook
+      </button>
       <div class="divider"><div class="divider-line"></div><div class="divider-text">או עם מייל וסיסמה</div><div class="divider-line"></div></div>
     </div>
 
@@ -378,6 +386,34 @@
     document.querySelector('#gsSlugPreview strong').textContent = val ? location.origin + '/index.html?slug=' + val : '—';
   }
 
+  /* ── Facebook OAuth ── */
+  let _fbTab = 'login';
+  function startFacebook(tab) {
+    _fbTab = tab;
+    FB.login(function(r) {
+      if (r.status === 'connected') handleFacebookCredential(r.authResponse.accessToken);
+    }, { scope: 'email' });
+  }
+
+  async function handleFacebookCredential(accessToken) {
+    try {
+      const res = await fetch(`${API}/auth/facebook`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken })
+      });
+      if (!res.ok) { alert('שגיאה בהתחברות עם Facebook'); return; }
+      const data = await res.json();
+      if (data.status === 'login') {
+        sessionStorage.setItem('adminToken', data.adminToken);
+        sessionStorage.setItem('adminSlug', data.slug);
+        location.href = `/admin.html?slug=${data.slug}`;
+      } else if (data.status === 'new_user') {
+        document.getElementById('gs-email').value = data.email;
+        showPanel('panel-google-setup');
+      }
+    } catch { alert('שגיאת רשת'); }
+  }
+
   /* ── Google OAuth (renderButton — no FedCM, no implicit grant) ── */
   async function handleGoogleCredential(response) {
     try {
@@ -490,22 +526,40 @@
     finally { btn.disabled = false; btn.textContent = 'כניסה לניהול'; }
   }
 
-  /* ── Init Google GSI (renderButton — works without FedCM/implicit grant) ── */
-  async function initGoogle() {
+  /* ── Init social auth ── */
+  async function initSocial() {
     const cfg = await fetch(`${API}/config`).then(r => r.json()).catch(() => ({}));
-    if (!cfg.googleClientId) return;
-    google.accounts.id.initialize({
-      client_id: cfg.googleClientId,
-      callback:  handleGoogleCredential,
-    });
-    google.accounts.id.renderButton(document.getElementById('g-register-btn'),
-      { theme: 'outline', size: 'large', text: 'continue_with', width: 424 });
-    google.accounts.id.renderButton(document.getElementById('g-login-btn'),
-      { theme: 'outline', size: 'large', text: 'signin_with', width: 424 });
-    document.getElementById('google-register-wrap').style.display = 'block';
-    document.getElementById('google-login-wrap').style.display    = 'block';
+    const hasGoogle = !!cfg.googleClientId;
+    const hasFb     = !!cfg.facebookAppId;
+
+    if (hasGoogle) {
+      google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: handleGoogleCredential });
+      google.accounts.id.renderButton(document.getElementById('g-register-btn'),
+        { theme: 'outline', size: 'large', text: 'continue_with', width: 424 });
+      google.accounts.id.renderButton(document.getElementById('g-login-btn'),
+        { theme: 'outline', size: 'large', text: 'signin_with', width: 424 });
+    }
+
+    if (hasFb) {
+      await new Promise(resolve => {
+        window.fbAsyncInit = function() {
+          FB.init({ appId: cfg.facebookAppId, cookie: true, xfbml: false, version: 'v21.0' });
+          resolve();
+        };
+        const s = document.createElement('script');
+        s.src = 'https://connect.facebook.net/he_IL/sdk.js';
+        s.async = true; document.head.appendChild(s);
+      });
+      document.getElementById('fb-register-btn').style.display = 'flex';
+      document.getElementById('fb-login-btn').style.display    = 'flex';
+    }
+
+    if (hasGoogle || hasFb) {
+      document.getElementById('google-register-wrap').style.display = 'block';
+      document.getElementById('google-login-wrap').style.display    = 'block';
+    }
   }
-  window.addEventListener('load', initGoogle);
+  window.addEventListener('load', initSocial);
 </script>
 </body>
 </html>

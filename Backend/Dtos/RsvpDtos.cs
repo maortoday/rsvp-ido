@@ -57,7 +57,9 @@ public record SettingsPublicDto(
     string ConfirmColor,
     string DeclineColor,
     bool   HasImage,
-    string WhatsAppTemplate
+    string WhatsAppTemplate,
+    string ConfirmMessage,
+    string DeclineMessage
 );
 
 public record SettingsUpdateDto(
@@ -68,5 +70,9 @@ public record SettingsUpdateDto(
     string? EventDate,
     string? ConfirmColor,
     string? DeclineColor,
-    string? WhatsAppTemplate
+    string? WhatsAppTemplate,
+    string? ConfirmMessage,
+    string? DeclineMessage
 );
+
+public record FacebookAuthRequest(string AccessToken);

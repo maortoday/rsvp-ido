@@ -363,9 +363,13 @@
       <div class="login-slug" id="loginSlugLabel"></div>
     </div>
 
-    <div id="googleLoginBtnWrap" style="display:none;justify-content:center;margin-bottom:4px">
+    <div id="googleLoginBtnWrap" style="display:none;justify-content:center;margin-bottom:8px">
       <div id="g-admin-btn"></div>
     </div>
+    <button class="google-btn" id="fbLoginBtn" onclick="startFacebook()" style="display:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+      כניסה עם Facebook
+    </button>
     <div class="divider" id="loginDivider" style="display:none">
       <div class="divider-line"></div><div class="divider-text">או עם סיסמה</div><div class="divider-line"></div>
     </div>
@@ -476,11 +480,23 @@
               </div>
 
               <div class="field-group wa-template-wrap">
-                <div class="field-label">הודעת WhatsApp לאורחים</div>
+                <div class="field-label">הודעת WhatsApp אוטומטית לאורח (דרך UltraMsg)</div>
                 <textarea class="settings-input" id="s-watemplate" placeholder="שלום {שם}! 🎉&#10;נשמח לראותכם באירוע {אירוע}.&#10;תודה על האישור!"></textarea>
                 <div class="wa-hint">
-                  משתנים זמינים: <strong>{שם}</strong> שם פרטי &nbsp;·&nbsp; <strong>{שם_מלא}</strong> שם מלא &nbsp;·&nbsp; <strong>{אורחים}</strong> מספר אורחים &nbsp;·&nbsp; <strong>{אירוע}</strong> שם האירוע &nbsp;·&nbsp; <strong>{תאריך}</strong> תאריך
+                  נשלחת אוטומטית כשאורח מאשר הגעה · משתנים: <strong>{שם}</strong> &nbsp;·&nbsp; <strong>{שם_מלא}</strong> &nbsp;·&nbsp; <strong>{אורחים}</strong> &nbsp;·&nbsp; <strong>{אירוע}</strong> &nbsp;·&nbsp; <strong>{תאריך}</strong>
                 </div>
+              </div>
+
+              <div class="field-group wa-template-wrap">
+                <div class="field-label">הודעת אישור הגעה (מוצגת לאורח לאחר לחיצה על "מגיעים")</div>
+                <textarea class="settings-input" id="s-confirmmsg" placeholder="שמחים לקבל אתכם! נתראה באירוע 🎉&#10;ניתן להוסיף {שם}, {אורחים}, {תאריך}"></textarea>
+                <div class="wa-hint">משתנים: <strong>{שם}</strong> &nbsp;·&nbsp; <strong>{שם_מלא}</strong> &nbsp;·&nbsp; <strong>{אורחים}</strong> &nbsp;·&nbsp; <strong>{אירוע}</strong> &nbsp;·&nbsp; <strong>{תאריך}</strong></div>
+              </div>
+
+              <div class="field-group wa-template-wrap">
+                <div class="field-label">הודעת אי-הגעה (מוצגת לאורח לאחר לחיצה על "לא מגיעים")</div>
+                <textarea class="settings-input" id="s-declinemsg" placeholder="חבל שלא תוכלו להגיע 💌&#10;נשמח לראותכם בשמחות אחרות!"></textarea>
+                <div class="wa-hint">משתנים: <strong>{שם}</strong> &nbsp;·&nbsp; <strong>{שם_מלא}</strong> &nbsp;·&nbsp; <strong>{אירוע}</strong></div>
               </div>
 
               <!-- Color pickers -->
@@ -655,18 +671,56 @@
     return h;
   }
 
-  /* ── Google OAuth (renderButton — no FedCM, no implicit grant) ── */
+  /* ── Social auth init ── */
   async function initGoogle() {
     const cfg = await fetch('/api/config').then(r => r.json()).catch(() => ({}));
-    if (!cfg.googleClientId) return;
-    google.accounts.id.initialize({
-      client_id: cfg.googleClientId,
-      callback:  handleGoogleCredential,
-    });
-    google.accounts.id.renderButton(document.getElementById('g-admin-btn'),
-      { theme: 'outline', size: 'large', text: 'signin_with', width: 320 });
-    document.getElementById('googleLoginBtnWrap').style.display = 'flex';
-    document.getElementById('loginDivider').style.display       = 'flex';
+
+    if (cfg.googleClientId) {
+      google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: handleGoogleCredential });
+      google.accounts.id.renderButton(document.getElementById('g-admin-btn'),
+        { theme: 'outline', size: 'large', text: 'signin_with', width: 320 });
+      document.getElementById('googleLoginBtnWrap').style.display = 'flex';
+      document.getElementById('loginDivider').style.display       = 'flex';
+    }
+
+    if (cfg.facebookAppId) {
+      await new Promise(resolve => {
+        window.fbAsyncInit = function() {
+          FB.init({ appId: cfg.facebookAppId, cookie: true, xfbml: false, version: 'v21.0' });
+          resolve();
+        };
+        const s = document.createElement('script');
+        s.src = 'https://connect.facebook.net/he_IL/sdk.js';
+        s.async = true; document.head.appendChild(s);
+      });
+      document.getElementById('fbLoginBtn').style.display  = 'flex';
+      document.getElementById('loginDivider').style.display = 'flex';
+    }
+  }
+
+  function startFacebook() {
+    FB.login(function(r) {
+      if (r.status === 'connected') handleFacebookCredential(r.authResponse.accessToken);
+    }, { scope: 'email' });
+  }
+
+  async function handleFacebookCredential(accessToken) {
+    try {
+      const res = await fetch('/api/auth/facebook', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken })
+      });
+      if (!res.ok) { document.getElementById('loginError').textContent = 'שגיאה בהתחברות עם Facebook'; return; }
+      const data = await res.json();
+      if (data.status === 'login') {
+        adminToken = data.adminToken;
+        sessionStorage.setItem('adminToken', adminToken);
+        sessionStorage.setItem('adminSlug',  data.slug);
+        await loadStats(); showDashboard();
+      } else {
+        document.getElementById('loginError').textContent = 'חשבון Facebook זה אינו רשום במערכת. אנא הירשמו תחילה.';
+      }
+    } catch { document.getElementById('loginError').textContent = 'שגיאת רשת'; }
   }
 
   async function handleGoogleCredential(response) {
@@ -740,7 +794,9 @@
       document.getElementById('s-phone').value    = s.phoneNumber || '';
       document.getElementById('s-location').value = s.location    || '';
       document.getElementById('s-family').value      = s.familyText      || '';
-      document.getElementById('s-watemplate').value  = s.whatsAppTemplate || '';
+      document.getElementById('s-watemplate').value   = s.whatsAppTemplate || '';
+      document.getElementById('s-confirmmsg').value   = s.confirmMessage   || '';
+      document.getElementById('s-declinemsg').value   = s.declineMessage   || '';
       waTemplate = s.whatsAppTemplate || '';
       eventTitle = s.eventTitle       || '';
       eventDate  = s.eventDate        || '';
@@ -778,6 +834,8 @@
         confirmColor:     document.getElementById('s-color-confirm').value,
         declineColor:     document.getElementById('s-color-decline').value,
         whatsAppTemplate: document.getElementById('s-watemplate').value.trim(),
+        confirmMessage:   document.getElementById('s-confirmmsg').value.trim(),
+        declineMessage:   document.getElementById('s-declinemsg').value.trim(),
       };
       const res = await fetch(SETTINGS_API, {
         method: 'PUT',
@@ -876,12 +934,7 @@
         <td>${e.attending ? `<span class="guest-count">${e.guests}</span>` : '<span style="color:#ccc">—</span>'}</td>
         <td><span class="badge ${e.attending ? 'badge-yes':'badge-no'}">${e.attending ? '✔ מגיע':'✘ לא מגיע'}</span></td>
         <td style="color:#aaa;font-size:12px">${new Date(e.createdAt).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
-        <td style="display:flex;gap:6px;align-items:center">
-          ${e.attending ? `<a class="wa-btn" href="${buildWaLink(e)}" target="_blank" title="שלח WhatsApp">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.122 1.526 5.858L0 24l6.335-1.502A11.954 11.954 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.808 9.808 0 0 1-5.034-1.388l-.361-.214-3.741.887.939-3.618-.235-.372A9.808 9.808 0 0 1 2.182 12C2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/></svg>
-          </a>` : ''}
-          <button class="del-btn" onclick="deleteEntry(${e.id})" title="מחק">🗑</button>
-        </td>
+        <td><button class="del-btn" onclick="deleteEntry(${e.id})" title="מחק">🗑</button></td>
       </tr>`).join('');
     container.innerHTML = `<table><thead><tr><th>#</th><th>שם</th><th>טלפון</th><th>אורחים</th><th>סטטוס</th><th>זמן</th><th></th></tr></thead><tbody>${html}</tbody></table>`;
   }

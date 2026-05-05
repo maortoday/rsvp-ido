@@ -516,8 +516,10 @@
       }
 
       // Event meta
-      window._eventTitle = s.eventTitle || '';
-      window._eventDate  = s.eventDate  || '';
+      window._eventTitle      = s.eventTitle      || '';
+      window._eventDate       = s.eventDate       || '';
+      window._confirmMessage  = s.confirmMessage  || '';
+      window._declineMessage  = s.declineMessage  || '';
 
       // Button colors
       let styles = '';
@@ -630,13 +632,27 @@
     if (entry.attending) {
       icon.className = 'toast-icon confirm-icon'; icon.textContent = '🎉';
       title.textContent = 'תודה! נרשמתם בהצלחה';
-      msg.innerHTML = `<strong>${entry.firstName} ${entry.lastName}</strong>, שמחים לקבל אתכם!<br/>
-        ${entry.guests > 1 ? `מספר משתתפים: <strong>${entry.guests}</strong><br/>` : ''}
-        ${dateStr ? `נתראה ב-<strong>${dateStr}</strong> 🌿` : ''}`;
+      const custom = (window._confirmMessage || '')
+        .replace(/{שם}/g,      entry.firstName)
+        .replace(/{שם_מלא}/g, `${entry.firstName} ${entry.lastName}`)
+        .replace(/{אורחים}/g,  entry.guests)
+        .replace(/{אירוע}/g,   evTitle)
+        .replace(/{תאריך}/g,   dateStr);
+      msg.innerHTML = custom
+        ? custom.replace(/\n/g, '<br/>')
+        : `<strong>${entry.firstName} ${entry.lastName}</strong>, שמחים לקבל אתכם!<br/>
+          ${entry.guests > 1 ? `מספר משתתפים: <strong>${entry.guests}</strong><br/>` : ''}
+          ${dateStr ? `נתראה ב-<strong>${dateStr}</strong> 🌿` : ''}`;
     } else {
       icon.className = 'toast-icon decline-icon'; icon.textContent = '💌';
       title.textContent = 'תודה על התשובה';
-      msg.innerHTML = `חבל שלא תוכלו להגיע, <strong>${entry.firstName}</strong>.<br/>נשמח לראותכם בשמחות אחרות!`;
+      const custom = (window._declineMessage || '')
+        .replace(/{שם}/g,      entry.firstName)
+        .replace(/{שם_מלא}/g, `${entry.firstName} ${entry.lastName}`)
+        .replace(/{אירוע}/g,   evTitle);
+      msg.innerHTML = custom
+        ? custom.replace(/\n/g, '<br/>')
+        : `חבל שלא תוכלו להגיע, <strong>${entry.firstName}</strong>.<br/>נשמח לראותכם בשמחות אחרות!`;
     }
     document.getElementById('toastOverlay').classList.add('show');
   }
